@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feed the Kraken - شاشة العرض</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#0A161C; --deep:#0F222B; --panel:#15303A; --panel2:#112730; --line:#27434E;
+  --foam:#EAE4D3; --rope:#8FA3A8; --brass:#C9953E; --brass-hi:#E8B45A;
+  --sailor:#4E8FC7; --pirate:#C05450; --cult:#D9A441; --cultist:#6FA873;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:radial-gradient(1400px 700px at 50% -250px,#14323E 0%,transparent 60%),var(--abyss);
+  color:var(--foam);font-family:'Tajawal',sans-serif;min-height:100vh;overflow:hidden;
+}
+h1,h2{font-family:'Aref Ruqaa',serif}
+
+/* دخول */
+#gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;text-align:center}
+#gate h1{font-size:52px;color:var(--brass)}
+#gate input{background:var(--deep);color:var(--foam);border:1px solid var(--line);border-radius:12px;
+  padding:16px;font-size:28px;text-align:center;letter-spacing:10px;width:240px;font-family:'Tajawal'}
+#gate button{background:var(--brass);color:#1A1206;border:0;border-radius:12px;padding:16px 40px;
+  font-size:20px;font-weight:800;font-family:'Tajawal';cursor:pointer}
+#gateErr{color:#D96459;min-height:24px}
+
+/* الشاشة */
+#screen{display:none;height:100vh;flex-direction:column;padding:18px;gap:14px}
+#topbar{display:flex;align-items:center;gap:24px}
+#title{font-size:30px;color:var(--brass)}
+#phaseBig{flex:1;text-align:center;background:var(--deep);border:1.5px solid var(--brass);color:var(--brass-hi);
+  border-radius:30px;padding:12px;font-weight:800;font-size:24px}
+#codeBig{font-family:'Aref Ruqaa';font-size:34px;color:var(--brass-hi);letter-spacing:10px}
+.tinfo{color:var(--rope);font-size:15px;text-align:center}
+.tinfo b{display:block;color:var(--foam);font-size:21px}
+
+#main{flex:1;display:grid;grid-template-columns:1fr 420px;gap:14px;min-height:0}
+#mapWrap{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+  border:1px solid var(--line);border-radius:16px;display:flex;align-items:center;justify-content:center;padding:10px;min-height:0}
+#mapSvg{max-height:100%;max-width:100%;height:100%}
+
+#side{display:flex;flex-direction:column;gap:14px;min-height:0}
+.panel{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+  border:1px solid var(--line);border-radius:16px;padding:14px}
+.panel h2{color:var(--brass);font-size:20px;margin-bottom:10px}
+#crew{flex:1;overflow-y:auto;min-height:0}
+.crewrow{display:flex;align-items:center;gap:10px;background:var(--deep);border:1px solid var(--line);
+  border-radius:10px;padding:9px 12px;margin-bottom:7px;font-size:16px}
+.crewrow.dead{opacity:.4}
+.crewrow .nm{font-weight:800;flex:1}
+.crewrow .role{color:var(--brass-hi);font-size:14px}
+.crewrow .guns{color:var(--brass-hi);font-weight:800}
+.badge{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:1px 7px;color:var(--rope)}
+.resdots{display:inline-flex;gap:3px}
+.resdots i{width:10px;height:10px;border-radius:2px}
+.d-yellow{background:var(--cult)}.d-blue{background:var(--sailor)}.d-red{background:var(--pirate)}
+
+#eventBox{min-height:84px;font-size:17px;line-height:1.8}
+#eventBox .ev{color:var(--foam)}
+#eventBox .old{color:var(--rope);font-size:14px}
+
+/* الفوز */
+#winOverlay{position:fixed;inset:0;background:rgba(8,16,20,.95);display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;z-index:50;text-align:center}
+#winOverlay h1{font-size:64px;color:var(--brass-hi)}
+#winFactions{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;max-width:900px;width:90%}
+#winFactions div{display:flex;justify-content:space-between;background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-size:19px}
+.chip{border-radius:6px;padding:3px 12px;font-weight:800}
+.f-sailor{background:var(--sailor)}.f-pirate{background:var(--pirate)}
+.f-cult_leader{background:var(--cult);color:#3A2A00}.f-cultist{background:var(--cultist)}
+@media(max-width:900px){#main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1>🐙 شاشة العرض المشتركة</h1>
+  <p style="color:var(--rope)">اعرض هذه الشاشة على التلفزيون - الجميع يرى اللوح العام</p>
+  <input id="code" placeholder="الكود" maxlength="4">
+  <button onclick="joinDisplay()">عرض</button>
+  <p id="gateErr"></p>
+</div>
+
+<div id="screen">
+  <div id="topbar">
+    <span id="title">🐙 Feed the Kraken</span>
+    <div id="phaseBig">—</div>
+    <div class="tinfo">أوراق السحب<b id="drawCount">-</b></div>
+    <div class="tinfo">الأعماق<b id="discardCount">-</b></div>
+    <span id="codeBig"></span>
+  </div>
+  <div id="main">
+    <div id="mapWrap">
+      <svg id="mapSvg" viewBox="-340 -640 680 700" aria-label="خريطة الرحلة"></svg>
+    </div>
+    <div id="side">
+      <div class="panel" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <h2>الطاقم</h2>
+        <div id="crew"></div>
+      </div>
+      <div class="panel">
+        <h2>آخر الأحداث</h2>
+        <div id="eventBox"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="winOverlay">
+  <h1 id="winTitle"></h1>
+  <p id="winReason" style="color:var(--rope);font-size:22px"></p>
+  <h2 style="color:var(--brass);font-size:26px">كشف الهويات</h2>
+  <div id="winFactions"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/ftk-map.js"></script>
+<script>
+const socket=io();
+let S=null;
+const $=id=>document.getElementById(id);
+const PHASE_AR={lobby:'بهو الانتظار - انضموا بالكود!',pirate_gathering:'🤫 التجمع السري للقراصنة',
+appoint_team:'⚓ القبطان يعيّن فريق الملاحة',loyalty_commit:'⚔️ سؤال الولاء - المسدسات تقرر',
+post_reveal:'ما بعد كشف الأسلحة ⚔️',mutiny_tie:'تعادل في المطيانة!',nav_captain:'🧭 الملاحة: القبطان يختار بصمت',
+nav_lieutenant:'🧭 الملاحة: المساعد يختار بصمت',nav_navigator:'🧭 الملاحة: الملاح يحسم',
+map_action:'⚡ حدث الخريطة!',card_action:'🃏 حدث الورقة',cult_ritual:'🐙 طقس الطائفة - لا تنظروا!',
+game_over:'انتهت الرحلة'};
+const FACTION_AR={sailor:'بحّار ⚓',pirate:'قرصان 🏴‍☠️',cult_leader:'قائد الطائفة 🐙',cultist:'تابع 🟢'};
+const VIC_AR={PIRATE_VICTORY:'انتصار القراصنة 🏴‍☠️',SAILOR_VICTORY:'انتصار البحّارة ⚓',CULT_VICTORY:'انتصار الطائفة 🐙'};
+const NOTFROM_AR={pirate:'القراصنة',sailor:'البحّارة',cult:'الطائفة'};
+
+FTKMap.build($('mapSvg'));
+
+function joinDisplay(){
+  socket.emit('display:join',{code:$('code').value},(r)=>{
+    if(!r.ok) return $('gateErr').textContent=r.error;
+    localStorage.setItem('ftk_display_code',r.code);
+    $('gate').style.display='none'; $('screen').style.display='flex';
+  });
+}
+const saved=localStorage.getItem('ftk_display_code');
+if(saved){
+  socket.emit('display:join',{code:saved},(r)=>{
+    if(r.ok){ $('gate').style.display='none'; $('screen').style.display='flex'; }
+  });
+}
+socket.io.on('reconnect',()=>{
+  const cd=localStorage.getItem('ftk_display_code');
+  if(cd) socket.emit('display:join',{code:cd},()=>{});
+});
+
+socket.on('state',(s)=>{ S=s; render(); });
+
+// [F06/Floging] إشعارات الأحداث العامة (نتائج Map Actions العامة)
+socket.on('public_toast',(d)=>{
+  const box=$('eventBox');
+  const ev=document.createElement('div');
+  ev.className='ev';
+  ev.style.color='var(--brass-hi)';
+  ev.style.fontWeight='800';
+  ev.textContent=`${d.title||''} ${d.message||''}`;
+  if(box) box.prepend(ev);
+  // يختفي من قمة السجل بعد 12 ثانية (يبقى في سجل اللعبة العام)
+  setTimeout(()=>{ if(ev&&ev.parentNode) ev.style.opacity='0.6'; }, 12000);
+});
+
+function render(){
+  $('codeBig').textContent=S.code;
+  $('phaseBig').textContent=PHASE_AR[S.phase]||S.phase;
+  $('drawCount').textContent=S.drawPileCount;
+  $('discardCount').textContent=S.discardPileCount;
+  FTKMap.update($('mapSvg'),S);
+
+  // الطاقم
+  const sorted=[...S.players].sort((a,b)=>a.seat-b.seat);
+  $('crew').innerHTML=sorted.map(p=>{
+    let role='';
+    if(p.id===S.captainId) role='⚓ قبطان';
+    else if(p.id===S.lieutenantId) role='⭐ مساعد';
+    else if(p.id===S.navigatorId) role='🧭 ملاح';
+    else if(p.offDuty) role='💤';
+    const badges=[];
+    if(p.offDuty) badges.push('<span class="badge">💤 خارج الخدمة</span>');
+    if(p.tongueCut) badges.push('<span class="badge">🗡️ بلا لسان</span>');
+    if(p.floggingResult) badges.push(`<span class="badge">ليس ${NOTFROM_AR[p.floggingResult]||''}</span>`);
+    if(p.characterRevealed) badges.push('<span class="badge">🃏</span>');
+    if(!p.alive) badges.push(`<span class="badge">${p.eliminated==='kraken'?'🐙 أُكل':'🌊 قفز'}</span>`);
+    const dots=(p.resumes||[]).map(r=>`<i class="d-${r.color}"></i>`).join('');
+    const committed=(S.mutinyCommittedIds||[]).includes(p.id)&&S.phase==='loyalty_commit'?'✊':'';
+    return `<div class="crewrow ${p.alive?'':'dead'}">
+      <span class="nm">${p.name} ${committed}</span>
+      <span class="role">${role}</span>
+      ${badges.join('')}
+      <span class="resdots">${dots}</span>
+      <span class="guns">🔫${p.guns}</span>
+    </div>`;
+  }).join('');
+
+  // الأحداث (آخر 3 من السجل العام)
+  const logs=(S.log||[]).slice(-3).reverse();
+  $('eventBox').innerHTML=logs.map((l,i)=>`<div class="${i===0?'ev':'old'}">${l.msg}</div>`).join('');
+
+  // كشف المطيانة على الشاشة الكبيرة
+  if(S.mutinyRevealed&&S.phase!=='appoint_team'){
+    const rows=Object.entries(S.mutinyRevealed).map(([pid,n])=>{
+      const p=S.players.find(q=>q.id===pid);
+      return n>0?`${p?.name}: ${n}🔫`:null;
+    }).filter(Boolean);
+    if(rows.length) $('eventBox').innerHTML=`<div class="ev">⚔️ المسدسات المكشوفة: ${rows.join(' | ')}</div>`+$('eventBox').innerHTML;
+  }
+
+  // الفوز
+  if(S.winner){
+    $('winOverlay').style.display='flex';
+    $('winTitle').textContent=VIC_AR[S.winner]||S.winner;
+    $('winReason').textContent=S.winReason||'';
+    $('winFactions').innerHTML=S.players.map(p=>
+      `<div><span>${p.name}</span><span class="chip f-${p.faction}">${FACTION_AR[p.faction]||'؟'}</span></div>`).join('');
+  } else $('winOverlay').style.display='none';
+}
+</script>
+</body>
+</html>
