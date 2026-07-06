@@ -1,0 +1,15 @@
+{
+  "name": "feed-the-kraken-online",
+  "version": "0.1.0",
+  "description": "Online adaptation of the Feed the Kraken board game - Backend engine",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node test/sim.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "socket.io": "^4.7.0",
+    "socket.io-client": "^4.8.3"
+  }
+}

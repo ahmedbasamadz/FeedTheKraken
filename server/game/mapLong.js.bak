@@ -1,0 +1,234 @@
+// ============================================
+// خريطة Feed the Kraken - مصدر الحقيقة الوحيد: map_f1.html
+// 31 خلية سداسية + 7 وجهات نصر (terminus).
+//
+// نظام الإحداثيات: row = floor(y) + 1 (صفوف 1..7 جنوب→شمال)
+// x = col (الإزاحة الأفقية: سالب = غرب/قراصنة، موجب = شرق/بحّارة)
+// أحجام الصفوف: [3, 3, 5, 7, 7, 5, 1] = 31 خلية
+//
+// كل exits محسوبة مسبقاً من منطق getNextNode في map_f1.html (مصدر الحقيقة).
+// التحقق: كل خلية غير طرفية لها 3 مخارج، وكل مخارج الـ 7 أطراف → VICTORY ثابت.
+// ============================================
+
+const { MAP_ACTIONS } = require('./constants');
+
+const VICTORY = {
+  PIRATE: 'PIRATE_VICTORY',   // غرب — القراصنة
+  SAILOR: 'SAILOR_VICTORY',   // شرق — البحّارة
+  CULT: 'CULT_VICTORY',       // شمال — الكراكن
+};
+
+// أحجام الصفوف [3, 3, 5, 7, 7, 5, 1] = 31 خلية (مطابقة لـ map_f1.html)
+const ROW_X = {
+  1: [-1, 0, 1],
+  2: [-1, 0, 1],
+  3: [-2, -1, 0, 1, 2],
+  4: [-3, -2, -1, 0, 1, 2, 3],
+  5: [-3, -2, -1, 0, 1, 2, 3],
+  6: [-2, -1, 0, 1, 2],
+  7: [0],
+};
+
+// العقد الـ 31 بنظام {num, col, y} من map_f1.html.
+// num = ترقيم الخلية على اللوح (1..31)، row = floor(y)+1، x = col.
+const NODES = [
+  { num: 1,  col: 0,  y: 0.0 },
+  { num: 2,  col: -1, y: 0.5 },
+  { num: 3,  col: 1,  y: 0.5 },
+  { num: 4,  col: 0,  y: 1.0 },
+  { num: 5,  col: -1, y: 1.5 },
+  { num: 6,  col: 1,  y: 1.5 },
+  { num: 7,  col: -2, y: 2.0 },
+  { num: 8,  col: 0,  y: 2.0 },
+  { num: 9,  col: 2,  y: 2.0 },
+  { num: 10, col: -1, y: 2.5 },
+  { num: 11, col: 1,  y: 2.5 },
+  { num: 12, col: -2, y: 3.0 },
+  { num: 13, col: 0,  y: 3.0 },
+  { num: 14, col: 2,  y: 3.0 },
+  { num: 15, col: -3, y: 3.5 },
+  { num: 16, col: -1, y: 3.5 },
+  { num: 17, col: 1,  y: 3.5 },
+  { num: 18, col: 3,  y: 3.5 },
+  { num: 19, col: -2, y: 4.0 },
+  { num: 20, col: 0,  y: 4.0 },
+  { num: 21, col: 2,  y: 4.0 },
+  { num: 22, col: -3, y: 4.5 },
+  { num: 23, col: -1, y: 4.5 },
+  { num: 24, col: 1,  y: 4.5 },
+  { num: 25, col: 3,  y: 4.5 },
+  { num: 26, col: -2, y: 5.0 },
+  { num: 27, col: 0,  y: 5.0 },
+  { num: 28, col: 2,  y: 5.0 },
+  { num: 29, col: -1, y: 5.5 },
+  { num: 30, col: 1,  y: 5.5 },
+  { num: 31, col: 0,  y: 6.0 },
+];
+
+// مواقع الـ Map Action tokens (من map_f1.html alerts):
+// cabin_search: nums 5, 6, 7, 8 | off_with_tongue: num 13 | flogging: nums 16, 17 | feed_the_kraken: nums 23, 24, 27
+const ACTION_PLACEMENT = {
+  'h2_-1': MAP_ACTIONS.CABIN_SEARCH,      // num 5
+  'h2_1':  MAP_ACTIONS.CABIN_SEARCH,      // num 6
+  'h3_-2': MAP_ACTIONS.CABIN_SEARCH,      // num 7
+  'h3_0':  MAP_ACTIONS.CABIN_SEARCH,      // num 8
+  'h4_0':  MAP_ACTIONS.OFF_WITH_TONGUE,   // num 13
+  'h4_-1': MAP_ACTIONS.FLOGGING,          // num 16
+  'h4_1':  MAP_ACTIONS.FLOGGING,          // num 17
+  'h5_-1': MAP_ACTIONS.FEED_THE_KRAKEN,   // num 23
+  'h5_1':  MAP_ACTIONS.FEED_THE_KRAKEN,   // num 24
+  'h6_0':  MAP_ACTIONS.FEED_THE_KRAKEN,   // num 27
+};
+
+// جدول المخارج المُحسوب مسبقاً من getNextNode في map_f1.html.
+// كل قيمة = num الخلية الهدف، أو ثابت VICTORY.* للأطراف.
+// EXIT_TABLE[num] = { yellow, red, blue } (الأهداف بأرقام num أو نص VICTORY).
+const EXIT_TABLE = {
+  1:  { yellow: 4,  red: 2,    blue: 3    },
+  2:  { yellow: 5,  red: 5,    blue: 4    },
+  3:  { yellow: 6,  red: 4,    blue: 6    },
+  4:  { yellow: 8,  red: 5,    blue: 6    },
+  5:  { yellow: 10, red: 7,    blue: 8    },
+  6:  { yellow: 11, red: 8,    blue: 9    },
+  7:  { yellow: 12, red: 12,   blue: 10   },
+  8:  { yellow: 13, red: 10,   blue: 11   },
+  9:  { yellow: 14, red: 11,   blue: 14   },
+  10: { yellow: 16, red: 12,   blue: 13   },
+  11: { yellow: 17, red: 13,   blue: 14   },
+  12: { yellow: 19, red: 15,   blue: 16   },
+  13: { yellow: 20, red: 16,   blue: 17   },
+  14: { yellow: 21, red: 17,   blue: 18   },
+  15: { yellow: 19, red: 22,   blue: 19   },
+  16: { yellow: 23, red: 19,   blue: 20   },
+  17: { yellow: 24, red: 20,   blue: 21   },
+  18: { yellow: 21, red: 21,   blue: 25   },
+  19: { yellow: 23, red: 26,   blue: 23   },
+  20: { yellow: 27, red: 23,   blue: 24   },
+  21: { yellow: 24, red: 24,   blue: 28   },
+  22: { yellow: VICTORY.PIRATE, red: VICTORY.PIRATE, blue: VICTORY.PIRATE },
+  23: { yellow: 29, red: 26,   blue: 27   },
+  24: { yellow: 30, red: 27,   blue: 28   },
+  25: { yellow: VICTORY.SAILOR, red: VICTORY.SAILOR, blue: VICTORY.SAILOR },
+  26: { yellow: VICTORY.PIRATE, red: VICTORY.PIRATE, blue: VICTORY.PIRATE },
+  27: { yellow: 31, red: 29,   blue: 30   },
+  28: { yellow: VICTORY.SAILOR, red: VICTORY.SAILOR, blue: VICTORY.SAILOR },
+  29: { yellow: VICTORY.PIRATE, red: VICTORY.PIRATE, blue: VICTORY.PIRATE },
+  30: { yellow: VICTORY.SAILOR, red: VICTORY.SAILOR, blue: VICTORY.SAILOR },
+  31: { yellow: VICTORY.CULT,   red: VICTORY.CULT,   blue: VICTORY.CULT   },
+};
+
+const START_HEX = 'h1_0';
+// السفينة تعبر خط الإمداد عند الانتقال من صف <= 4 إلى صف >= 5
+// (row = floor(y)+1، فالانتقال y<=3.5 → y>=4.0 يعادل row 4 → row 5).
+const SUPPLY_LINE_AFTER_ROW = 4;
+
+function rowOf(y) { return Math.floor(y) + 1; }
+function hexId(row, x) { return `h${row}_${x}`; }
+
+// تحويل num → hexId عبر جدول NODES.
+function hexIdOfNum(num) {
+  const n = NODES.find(nd => nd.num === num);
+  if (!n) return null;
+  return hexId(rowOf(n.y), n.col);
+}
+
+// بناء exits لخلية بعدد num: يحوّل أرقام num في EXIT_TABLE إلى hexIds.
+function computeExits(num) {
+  const table = EXIT_TABLE[num];
+  if (!table) return {};
+  const exits = {};
+  for (const color of ['yellow', 'red', 'blue']) {
+    const target = table[color];
+    if (typeof target === 'string') {
+      // ثابت نصر (VICTORY.*) يُمرَّر كما هو.
+      exits[color] = target;
+    } else {
+      const hid = hexIdOfNum(target);
+      if (!hid) throw new Error(`computeExits: num ${num}.${color} → num ${target} بلا خلية`);
+      exits[color] = hid;
+    }
+  }
+  return exits;
+}
+
+function buildMap() {
+  const hexes = {};
+  for (const n of NODES) {
+    const row = rowOf(n.y);
+    const x = n.col;
+    const id = hexId(row, x);
+    hexes[id] = {
+      id,
+      row,
+      x,
+      y: n.y,
+      num: n.num,
+      action: ACTION_PLACEMENT[id] || null,
+      exits: computeExits(n.num),
+    };
+  }
+  return hexes;
+}
+
+function buildLongJourneyMap() {
+  const map = buildMap();
+  assertMapInvariant(map, 'long');
+  return map;
+}
+
+function isVictory(dest) {
+  return dest === VICTORY.PIRATE || dest === VICTORY.SAILOR || dest === VICTORY.CULT;
+}
+
+// [قاعدة الحركة] التحقق من صحة المخرج: إما ثابت نصر، أو أن dest موجود فعلاً
+// كقيمة في exits[fromHex]. لا قيد row+1 صارم — الطوبولوجيا معرّفة بالكامل
+// في EXIT_TABLE (مصدر الحقيقة من map_f1.html) والمخارج موثوقة ببنائها.
+function isValidExit(fromHex, dest, map) {
+  if (!dest) return false;
+  if (isVictory(dest)) return true;
+  const toHex = map && map[dest];
+  if (!toHex) return false;
+  // dest يجب أن يكون مخرجاً معلناً من fromHex (أي داخل قيم exits).
+  return Object.values(fromHex.exits).includes(dest);
+}
+
+// فحص شامل لكل أسهم الخريطة: كل dest إما ثابت نصر أو خلية موجودة في الخريطة،
+// وكل dest (عندما لا يكون victory) يجب أن يكون مذكوراً في exits من تلك الخلية.
+// يُستدعى عند بناء كل خريطة لضمان اتساق EXIT_TABLE مع NODES.
+function assertMapInvariant(map, label) {
+  for (const id in map) {
+    const hex = map[id];
+    for (const color of ['red', 'yellow', 'blue']) {
+      const dest = hex.exits[color];
+      if (!dest) {
+        throw new Error(`خريطة غير صالحة (${label || 'map'}): ${id}.${color} بلا مخرج`);
+      }
+      if (isVictory(dest)) continue;
+      const toHex = map[dest];
+      if (!toHex) {
+        throw new Error(`خريطة غير صالحة (${label || 'map'}): ${id}.${color} → ${dest} خلية غير معروفة`);
+      }
+      if (toHex.num === hex.num) {
+        throw new Error(`خريطة غير صالحة (${label || 'map'}): ${id}.${color} → ${dest} تكرار نفس الخلية`);
+      }
+    }
+  }
+}
+
+// تسلسل الخريطة لإرسالها للعميل: { [id]: { row, x, y, num, action, exits } }
+// y و num يُضافان كي يستخدمهما الراسم (ftk-map.js) لحساب الموضع والرموز.
+function serializeMap(map) {
+  const out = {};
+  for (const id in map) {
+    const h = map[id];
+    out[id] = { id, row: h.row, x: h.x, y: h.y, num: h.num, action: h.action, exits: h.exits };
+  }
+  return out;
+}
+
+module.exports = {
+  buildLongJourneyMap,
+  VICTORY, START_HEX, SUPPLY_LINE_AFTER_ROW, isVictory,
+  isValidExit, assertMapInvariant, serializeMap,
+  ROW_X, NODES, EXIT_TABLE,
+};
