@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0A161C">
+<title>Feed the Kraken - لاعب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#0A161C; --deep:#0F222B; --panel:#15303A; --panel2:#112730; --line:#27434E;
+  --foam:#EAE4D3; --rope:#8FA3A8; --brass:#C9953E; --brass-hi:#E8B45A;
+  --sailor:#4E8FC7; --pirate:#C05450; --cult:#D9A441; --cultist:#6FA873; --danger:#D96459;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:15px}
+body{
+  background:radial-gradient(900px 420px at 50% -160px,#14323E 0%,transparent 60%),var(--abyss);
+  color:var(--foam);font-family:'Tajawal',sans-serif;min-height:100vh;
+  max-width:520px;margin:0 auto;padding:12px 12px 60px;
+}
+h1,h2{font-family:'Aref Ruqaa',serif}
+button{
+  font-family:'Tajawal';background:var(--panel);color:var(--foam);border:1px solid var(--line);
+  border-radius:10px;padding:12px 18px;font-size:15px;font-weight:700;cursor:pointer;
+}
+button:active{transform:scale(.98)}
+button.primary{background:var(--brass);color:#1A1206;border-color:var(--brass)}
+button.danger{border-color:var(--danger);color:var(--danger)}
+button:disabled{opacity:.4}
+button:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px}
+select{background:var(--deep);color:var(--foam);border:1px solid var(--line);border-radius:10px;
+  padding:11px;font-family:'Tajawal';font-size:15px;width:100%;margin:5px 0}
+input{background:var(--deep);color:var(--foam);border:1px solid var(--line);border-radius:10px;
+  padding:13px;font-family:'Tajawal';font-size:16px;width:100%;margin:6px 0}
+.hidden{display:none!important}
+.card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+  border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.muted{color:var(--rope);font-size:13px;line-height:1.7}
+.tag{font-size:11.5px;color:var(--rope)}
+
+/* ===== دخول ===== */
+#gate{display:flex;flex-direction:column;justify-content:center;min-height:85vh;gap:8px;text-align:center}
+#gate h1{font-size:34px;color:var(--brass)}
+#gate input{text-align:center}
+#gate #code{letter-spacing:8px;font-size:22px;font-weight:800}
+#gateErr{color:var(--danger);min-height:20px;font-size:13px}
+
+/* ===== رأس ===== */
+#topbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+#phaseChip{flex:1;background:var(--deep);border:1px solid var(--brass);color:var(--brass-hi);
+  border-radius:20px;padding:8px 14px;font-weight:800;font-size:14px;text-align:center}
+#codeChip{font-family:'Aref Ruqaa';color:var(--rope);letter-spacing:3px;font-size:15px}
+
+/* ===== الخريطة ===== */
+#mapCard{padding:6px}
+#mapToggle{width:100%;background:none;border:none;color:var(--brass);font-size:15px;
+  font-weight:700;padding:8px;font-family:'Aref Ruqaa'}
+#mapSvg{width:100%;height:auto;display:block}
+
+/* ===== الهوية ===== */
+#idCard{position:relative;overflow:hidden}
+#idVeil{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0}
+#idVeil p{color:var(--rope);font-size:12.5px}
+#idContent{padding-top:4px}
+.chip{display:inline-block;border-radius:6px;padding:4px 12px;font-weight:800;font-size:14px}
+.f-sailor{background:var(--sailor);color:#fff}.f-pirate{background:var(--pirate);color:#fff}
+.f-cult_leader{background:var(--cult);color:#3A2A00}.f-cultist{background:var(--cultist);color:#fff}
+#idTimer{position:absolute;top:10px;left:12px;color:var(--rope);font-size:12px}
+.charbox{border:1px dashed var(--brass);border-radius:10px;padding:10px;margin-top:10px;background:rgba(201,149,62,.06)}
+.charbox b{color:var(--brass-hi)}
+
+/* ===== الأكشن ===== */
+#actionPanel .navcard{display:inline-block;border-radius:10px;padding:14px 16px;margin:5px;font-weight:800;
+  font-size:15px;cursor:pointer;border:2px solid rgba(255,255,255,.2);color:#fff;text-align:center}
+.nc-yellow{background:#8A6A1E}.nc-blue{background:#2E5D8A}.nc-red{background:#8A3B38}
+.gunbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.gunbtns button{min-width:54px;font-size:17px}
+#err{color:var(--danger);font-size:13px;min-height:18px;margin-top:6px}
+.pendnote{border:1px dashed var(--brass);border-radius:10px;padding:10px;font-size:13.5px;
+  background:rgba(201,149,62,.07);margin-bottom:10px;line-height:1.7}
+
+/* ===== الطاقم ===== */
+.crew{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.crewcard{min-width:96px;background:var(--deep);border:1px solid var(--line);border-radius:10px;
+  padding:8px;text-align:center;font-size:12px;flex-shrink:0}
+.crewcard.dead{opacity:.4}
+.crewcard .nm{font-weight:800;font-size:13px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crewcard .role{color:var(--brass-hi);font-size:11px;min-height:14px}
+.crewcard .stat{color:var(--rope);font-size:11px}
+.resdots{display:flex;gap:2px;justify-content:center;margin-top:3px;min-height:8px}
+.resdots i{width:7px;height:7px;border-radius:2px}
+.d-yellow{background:var(--cult)}.d-blue{background:var(--sailor)}.d-red{background:var(--pirate)}
+
+/* ===== الأسرار ===== */
+#secrets div{background:#15301F;border:1px solid #2E5E45;border-radius:10px;padding:10px;margin:7px 0;font-size:13.5px;line-height:1.7}
+
+/* ===== الفوز ===== */
+#winOverlay{position:fixed;inset:0;background:rgba(8,16,20,.93);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;z-index:50;padding:24px;text-align:center}
+#winOverlay h1{font-size:32px;color:var(--brass-hi)}
+#winFactions{display:flex;flex-direction:column;gap:7px;width:100%;max-width:320px;max-height:45vh;overflow-y:auto}
+#winFactions div{display:flex;justify-content:space-between;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;padding:9px 14px}
+
+/* ===== طاقم الملاحة المعين ===== */
+#teamOverlay{position:fixed;inset:0;background:rgba(8,16,20,.95);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;z-index:50;padding:24px;text-align:center}
+#teamOverlayBox{position:relative;width:100%;max-width:380px;background:var(--panel);
+  border:2px solid var(--brass);border-radius:16px;padding:28px 20px 20px}
+#teamOverlay h2{font-size:24px;color:var(--brass-hi);margin-bottom:12px}
+#teamOverlayContent{width:100%}
+#teamOverlayCloseX{position:absolute;top:12px;right:14px;background:transparent;border:none;
+  color:#aaa;font-size:1.3rem;cursor:pointer;line-height:1;transition:color 0.2s}
+#teamOverlayCloseX:hover{color:#fff}
+.team-role-row{display:flex;justify-content:space-between;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:8px;font-size:16px}
+
+/* ===== كشف تفعيل بطاقة شخصية ===== */
+#charOverlay{position:fixed;inset:0;background:rgba(8,16,20,.95);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;z-index:50;padding:24px;text-align:center}
+#charOverlayBox{position:relative;width:100%;max-width:380px;background:var(--panel);
+  border:2px solid var(--brass);border-radius:16px;padding:28px 20px 20px}
+#charOverlay h2{font-size:24px;color:var(--brass-hi);margin-bottom:12px}
+#charOverlayContent{width:100%}
+#charOverlayCloseX{position:absolute;top:12px;right:14px;background:transparent;border:none;
+  color:#aaa;font-size:1.3rem;cursor:pointer;line-height:1;transition:color 0.2s}
+#charOverlayCloseX:hover{color:#fff}
+.char-activated-img{width:160px;height:auto;margin:12px auto;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.6)}
+
+/* ===== كشف التمرد ===== */
+#mutinyOverlay{position:fixed;inset:0;background:rgba(8,16,20,.95);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;z-index:50;padding:24px;text-align:center}
+#mutinyOverlayBox{position:relative;width:100%;max-width:380px;background:var(--panel);
+  border:2px solid var(--brass);border-radius:16px;padding:28px 20px 20px}
+#mutinyOverlay h2{font-size:24px;color:var(--brass-hi);margin-bottom:4px}
+#mutinyOverlayContent{width:100%}
+.mutiny-rows-container{display:flex;flex-direction:column;gap:7px;max-height:40vh;overflow-y:auto;margin-bottom:14px}
+.mutiny-rows-container div{display:flex;justify-content:space-between;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;padding:9px 14px}
+#mutinyOverlayCloseX{position:absolute;top:12px;right:14px;background:transparent;border:none;
+  color:#aaa;font-size:1.3rem;cursor:pointer;line-height:1;transition:color 0.2s}
+#mutinyOverlayCloseX:hover{color:#fff}
+
+/* ===== تنبيهات عابرة (§2.7 / §2.10) ===== */
+#toasts{position:fixed;top:10px;left:0;right:0;display:flex;flex-direction:column;align-items:center;
+  gap:8px;z-index:60;pointer-events:none;padding:0 12px}
+.toast{background:var(--brass);color:#1A1206;border-radius:12px;padding:12px 18px;font-weight:800;
+  font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.45);max-width:480px;text-align:center;
+  animation:toastIn .25s ease;transition:opacity .5s}
+.toast.info{background:var(--panel);color:var(--foam);border:1px solid var(--brass)}
+.toast.fade{opacity:0}
+@keyframes toastIn{from{transform:translateY(-12px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ===== Ability Timing Indicator ===== */
+.ability-timing {
+  font-size: 0.78rem;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+  transition: background 0.4s, color 0.4s;
+}
+.ability-timing--inactive {
+  background: #2a2a2a;
+  color: #888;
+}
+.ability-timing--active {
+  background: #fff3cd;
+  color: #7a5000;
+  border: 1px solid #f0c040;
+  animation: pulse-hint 1.2s infinite;
+}
+@keyframes pulse-hint {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* ===== نافذة كشف ورقة الملاحة ===== */
+#navCardOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 16, 20, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 49;
+  padding: 24px;
+  text-align: center;
+}
+#navCardOverlayBox {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: var(--panel);
+  border: 2px solid var(--brass);
+  border-radius: 16px;
+  padding: 28px 20px 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#navCardOverlayCloseX {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-size: 1.3rem;
+  cursor: pointer;
+  line-height: 1;
+}
+#navCardOverlayCloseX:hover {
+  color: #fff;
+}
+
+/* تصميم ورقة الملاحة الفاخر */
+.navcard-showcase {
+  width: 110px;
+  height: 155px;
+  margin: 15px auto;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  border: 3px solid rgba(255,255,255,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.navcard-showcase::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent 45%, rgba(255,255,255,0.15) 50%, transparent 55%);
+  animation: shine-effect 3s infinite;
+}
+
+.card-gradient-yellow { background: linear-gradient(135deg, #e6b000 0%, #b8860b 100%); }
+.card-gradient-blue { background: linear-gradient(135deg, #4e8fc7 0%, #2e5d8a 100%); }
+.card-gradient-red { background: linear-gradient(135deg, #c05450 0%, #8a3b38 100%); }
+
+@keyframes shine-effect {
+  0% { transform: translate(-30%, -30%); }
+  100% { transform: translate(30%, 30%); }
+}
+@keyframes pop-in {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.char-img {
+  width: 100%;
+  max-width: 240px;
+  border-radius: 12px;
+  margin: 4px auto 12px;
+  display: block;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+  border: 1px solid var(--line);
+  transition: transform 0.3s;
+}
+.char-img:hover {
+  transform: scale(1.02);
+}
+.ready-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+.ready-badge.yes {
+  background: #4caf50;
+  color: #fff;
+}
+.ready-badge.no {
+  background: #424242;
+  color: #aaa;
+}
+.lobby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  background: var(--deep);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+.lobby-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.lobby-row:last-child {
+  border-bottom: none;
+}
+</style>
+</head>
+<body>
+
+<!-- دخول -->
+<div id="gate">
+  <h1>🐙 Feed the Kraken</h1>
+  <p class="muted">أدخل كود الغرفة للانضمام، أو أنشئ غرفة جديدة</p>
+  <input id="code" placeholder="الكود" maxlength="4" autocomplete="off">
+  <input id="name" placeholder="اسمك على السفينة" maxlength="16">
+  <div style="display:flex; gap:10px; margin-top:8px;">
+    <button class="primary" style="flex:1" onclick="join()">⚓ انضم للغرفة</button>
+    <button style="flex:1" onclick="createRoom()">➕ أنشئ غرفة جديدة</button>
+  </div>
+  <p id="gateErr"></p>
+</div>
+
+<!-- اللعبة -->
+<div id="game" class="hidden">
+  <div id="topbar">
+    <span id="codeChip"></span>
+    <div id="phaseChip" title="ماذا يحدث الآن">—</div>
+    <button id="exitBtn" style="padding: 6px 12px; font-size: 13px; background: var(--danger); border-color: var(--danger); color: #fff; border-radius: 20px; font-weight: bold; margin-inline-start: 8px;" onclick="confirmExit()">خروج 🚪</button>
+  </div>
+
+  <div class="card" id="mapCard">
+    <button id="mapToggle" onclick="toggleMap()">🗺️ الخريطة ▾</button>
+    <svg id="mapSvg" viewBox="-340 -640 680 700" aria-label="خريطة الرحلة"></svg>
+  </div>
+
+  <!-- أسرارك -->
+  <div class="card">
+    <h2 style="color:var(--brass);font-size:16px;margin-bottom:4px">🔒 ما عرفته سراً</h2>
+    <div id="secrets"><p class="muted">لا شيء بعد - ما تكتشفه سراً خلال اللعبة يظهر هنا</p></div>
+  </div>
+
+  <!-- هويتك السرية -->
+  <div class="card" id="idCard">
+    <span id="idTimer"></span>
+    <div id="idVeil">
+      <button onclick="revealId()">🤫 اكشف هويتك (لعينيك فقط)</button>
+      <p>تأكد أن لا أحد ينظر لشاشتك</p>
+    </div>
+    <div id="idContent" class="hidden"></div>
+  </div>
+
+  <!-- الأكشن -->
+  <div class="card">
+    <h2 style="color:var(--brass);font-size:17px;margin-bottom:8px" id="meName"></h2>
+    <div id="actionPanel"></div>
+    <p id="err"></p>
+  </div>
+
+  <!-- الطاقم -->
+  <div class="card">
+    <h2 style="color:var(--brass);font-size:16px;margin-bottom:8px">الطاقم</h2>
+    <div class="crew" id="crew"></div>
+  </div>
+
+
+</div>
+
+<!-- الفوز -->
+<div id="winOverlay" class="hidden">
+  <h1 id="winTitle"></h1>
+  <p id="winReason" class="muted"></p>
+  <div id="winFactions"></div>
+  <div style="display: flex; gap: 10px; margin-top: 15px;">
+    <button class="primary" onclick="confirmExit()">🏠 العودة للصفحة الرئيسية</button>
+    <button onclick="startNewGame()">➕ بدء لعبة جديدة</button>
+  </div>
+</div>
+
+<!-- كشف التمرد المؤقت -->
+<div id="mutinyOverlay" class="hidden">
+  <div id="mutinyOverlayBox">
+    <button id="mutinyOverlayCloseX" onclick="closeMutinyOverlay()">✕</button>
+    <div id="mutinyOverlayContent"></div>
+    <div id="mutinyOverlayTimer" class="muted" style="font-size:14px;margin-bottom:8px"></div>
+    <button class="primary" onclick="closeMutinyOverlay()">إغلاق</button>
+  </div>
+</div>
+
+<!-- طاقم الملاحة المعين المؤقت -->
+<div id="teamOverlay" class="hidden">
+  <div id="teamOverlayBox">
+    <button id="teamOverlayCloseX" onclick="closeTeamOverlay()">✕</button>
+    <div id="teamOverlayContent"></div>
+    <button class="primary" onclick="closeTeamOverlay()" style="margin-top: 12px; width: 100%;">موافق</button>
+  </div>
+</div>
+
+<!-- نافذة كشف تفعيل بطاقة شخصية -->
+<div id="charOverlay" class="hidden">
+  <div id="charOverlayBox">
+    <button id="charOverlayCloseX" onclick="closeCharOverlay()">✕</button>
+    <div id="charOverlayContent"></div>
+    <div id="charOverlayTimer" class="muted" style="font-size: 13px; margin-top: 8px;"></div>
+    <button class="primary" onclick="closeCharOverlay()" style="margin-top: 12px; width: 100%;">موافق</button>
+  </div>
+</div>
+
+<!-- نافذة كشف ورقة الملاحة الملعوبة -->
+<div id="navCardOverlay" class="hidden">
+  <div id="navCardOverlayBox">
+    <button id="navCardOverlayCloseX" onclick="closeNavCardOverlay()">✕</button>
+    <div id="navCardOverlayContent"></div>
+    <div id="navCardOverlayTimer" class="muted" style="font-size: 13px; margin-top: 8px;"></div>
+    <button class="primary" onclick="closeNavCardOverlay()" style="margin-top: 12px; width: 100%;">موافق</button>
+  </div>
+</div>
+
+<!-- تنبيهات عابرة -->
+<div id="toasts"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/ftk-map.js"></script>
+<script>
+const socket=io();
+let S=null, ME=null, mapOpen=true, idTimerInt=null;
+let pendingTelescope=false, pendingInstigator=null, pendingArchivist=null;
+// [§2.7/§2.10] لرصد انتقالات الأدوار/المطيانة بين تحديثَي الحالة
+let prevCaptainId=null, prevPhase=null, seenState=false;
+let mutinyModalSeen = false;
+let teamModalSeen = false;
+let lastActivatedCharTime = 0;
+let charOverlayTimerInt = null;
+let mutinyOverlayTimerInt = null;
+let lastPlayedCardTime = 0;
+let navCardOverlayTimerInt = null;
+let mutinyCommitTimerInt = null;
+const $=id=>document.getElementById(id);
+
+const PHASE_AR={lobby:'بهو الانتظار',pirate_gathering:'التجمع السري',appoint_team:'تعيين الفريق',
+loyalty_commit:'سؤال الولاء',post_reveal:'ما بعد كشف المسدسات',mutiny_tie:'حسم تعادل التمرد',nav_captain:'الملاحة: القبطان يختار',
+nav_lieutenant:'الملاحة: المساعد يختار',nav_navigator:'الملاحة: الملاح يحسم',map_action:'حدث الخريطة',
+card_action:'حدث الورقة',cult_ritual:'طقس الطائفة 🐙',game_over:'انتهت اللعبة'};
+const FACTION_AR={sailor:'بحّار ⚓',pirate:'قرصان 🏴‍☠️',cult_leader:'قائد الطائفة 🐙',cultist:'تابع الطائفة 🟢'};
+const ACTION_AR={drunk:'سُكر 🍺',mermaid:'حورية 🧜',telescope:'تلسكوب 🔭',armed:'تسليح ➕',disarmed:'نزع سلاح ➖',cult_uprising:'نهوض الطائفة 🐙'};
+const COLOR_AR={yellow:'🟡 شمال',blue:'🔵 شرق',red:'🔴 غرب'};
+const MAPACT_AR={cabin_search:'فحص الكابينة 🔍',flogging:'الجلد 🪢',off_with_tongue:'قطع اللسان 🗡️',feed_the_kraken:'إطعام الكراكن 🐙'};
+const VIC_AR={PIRATE_VICTORY:'انتصار القراصنة 🏴‍☠️',SAILOR_VICTORY:'انتصار البحّارة ⚓',CULT_VICTORY:'انتصار الطائفة 🐙'};
+const NOTFROM_AR={pirate:'القراصنة',sailor:'البحّارة',cult:'الطائفة'};
+
+const ABILITY_TIMING = {
+  kleptomaniac:     { triggerPhase: 'anytime',        hint: 'استخدمها في أي وقت تشاء خلال اللعب' },
+  troublemaker:     { triggerPhase: 'post_reveal',    hint: 'استخدمها فوراً بعد كشف المسدسات في التمرد' },
+  gunsmith:         { triggerPhase: 'anytime',        hint: 'استخدمها في أي وقت (تخسر مسدساً لتفعيلها)' },
+  peacemaker:       { triggerPhase: 'post_reveal',    hint: 'استخدمها فوراً بعد كشف المسدسات لإلغاء تصويت لاعب' },
+  gunslinger:       { triggerPhase: 'anytime',        hint: 'استخدمها في أي وقت لتأخذ مسدسين من الاحتياطي' },
+  minstrel:         { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد تعيين الفريق لمنع لاعبين من التصويت' },
+  bosun:            { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد تعيين الفريق لتبادل شارات المساعد والملاح' },
+  herbalist:        { triggerPhase: 'appoint_team',   hint: 'استخدمها في مرحلة تعيين الفريق لنقل علامة الاستراحة' },
+  lookout:          { triggerPhase: 'anytime',        hint: 'استخدمها في أي وقت لمعاينة أوراق الملاحة' },
+  master_strategist:{ triggerPhase: 'post_reveal',    hint: 'استخدمها فوراً بعد كشف المسدسات لاسترجاع مسدساتك' },
+  smuggler:         { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد حسم التمرد وقبل سحب أوراق الملاحة' },
+  agitator:         { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد تعيين الفريق لإجبار لاعبين على التمرد' },
+  consultant:       { triggerPhase: 'appoint_team',   hint: 'استخدمها قبل تعيين الفريق لتعيين المساعد القادم' },
+  chief_cook:       { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد تعيين الفريق لنقل القبطانية' },
+  rabble_rouser:    { triggerPhase: 'post_reveal',    hint: 'استخدمها فوراً بعد كشف المسدسات لتقليل متطلبات التمرد' },
+  archivist:        { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد حسم التمرد للسماح بإعادة سحب الأوراق' },
+  mentor:           { triggerPhase: 'anytime',        hint: 'استخدمها في أي وقت لإعادة شحن قدرة لاعب' },
+  spiritualist:     { triggerPhase: 'card_action',    hint: 'استخدمها بعد لعب ورقة صفراء لنقل المسدسات' },
+  debt_collector:   { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد تعيين الفريق لإجبار ملاح على دفع مسدسات' },
+  equalizer:        { triggerPhase: 'loyalty_commit', hint: 'استخدمها بعد تعيين الفريق لتحديد مسدسات التمرد بـ 1' },
+  instigator:       { triggerPhase: 'post_reveal',    hint: 'استخدمها فوراً بعد كشف المسدسات لدعوة لاعب للتمرد' },
+};
+
+const ACTIVE_PHASES = ['pirate_gathering','appoint_team','loyalty_commit',
+  'post_reveal','mutiny_tie','nav_captain','nav_lieutenant',
+  'nav_navigator','map_action','card_action','cult_ritual'];
+
+FTKMap.build($('mapSvg'));
+
+function ack(r){ if(r&&!r.ok){ $('err').textContent=r.error; setTimeout(()=>$('err').textContent='',4000);} }
+function emitA(ev,p){ socket.emit(ev,p||{},ack); }
+
+// ===== جلسة =====
+function join(){
+  socket.emit('player:join',{code:$('code').value,name:$('name').value},(r)=>{
+    if(!r.ok) return $('gateErr').textContent=r.error;
+    localStorage.setItem('ftk_pid',r.playerId); localStorage.setItem('ftk_code',r.code);
+    enter();
+  });
+}
+function createRoom(){
+  const name = $('name').value.trim();
+  if(!name) { $('gateErr').textContent = 'أدخل اسمك أولاً'; return; }
+  socket.emit('player:create_room',{name},(r)=>{
+    if(!r.ok) return $('gateErr').textContent=r.error;
+    localStorage.setItem('ftk_pid',r.playerId); localStorage.setItem('ftk_code',r.code);
+    enter();
+  });
+}
+function enter(){ $('gate').classList.add('hidden'); $('game').classList.remove('hidden'); }
+const savedPid=localStorage.getItem('ftk_pid'), savedCode=localStorage.getItem('ftk_code');
+if(savedPid&&savedCode){
+  socket.emit('player:rejoin',{code:savedCode,playerId:savedPid},(r)=>{
+    if(r.ok) enter(); else { localStorage.removeItem('ftk_pid'); localStorage.removeItem('ftk_code'); }
+  });
+}
+socket.io.on('reconnect',()=>{ // إعادة ربط تلقائية عند رجوع الشبكة
+  const pid=localStorage.getItem('ftk_pid'), cd=localStorage.getItem('ftk_code');
+  if(pid&&cd) socket.emit('player:rejoin',{code:cd,playerId:pid},()=>{});
+});
+
+// ===== أحداث =====
+socket.on('state',(s)=>{ S=s; ME=s.you; render(); });
+socket.on('secret',(info)=>{
+  if(info.type==='telescope'){ pendingTelescope=true; }
+  addSecret(fmtSecret(info));
+  if(info.type==='instigator_forced') {
+    toast(`⚡ تم تنفيذ قدرة المحرّك الخفي عليك! تم سحب ${info.gunsTaken} مسدسات.`);
+  }
+  if(S) renderAction();
+});
+socket.on('prompt',(info)=>{
+  if(info.type==='instigator_offer'){ renderAction(); }
+  if(info.type==='archivist_offer'){ renderAction(); }
+});
+// [F06/Floging] إشعار عام بحدث على ظهر السفينة (نتائج Map Actions العامة)
+socket.on('public_toast',(d)=>{
+  toast(`${d.title||''} ${d.message||''}`, 'info');
+});
+
+function addSecret(txt){
+  const box=$('secrets');
+  if(box.querySelector('.muted')) box.innerHTML='';
+  const d=document.createElement('div'); d.textContent=txt; box.prepend(d);
+}
+function fmtSecret(i){
+  if(i.type==='instigator_forced') return `⚡ تم تنفيذ قدرة المحرّك الخفي عليك، وتم سحب جميع مسدساتك المتبقية للمطيانة! (عددها: ${i.gunsTaken})`;
+  if(i.type==='cabin_search') return `🔍 فحصت كابينة ${i.target}: إنه ${FACTION_AR[i.faction]}`;
+  if(i.type==='mermaid') return `🧜 آخر 3 أوراق في الأعماق: `+i.cards.map(c=>`${COLOR_AR[c.color]} ${ACTION_AR[c.action]}`).join(' | ');
+  if(i.type==='telescope') return `🔭 الورقة العلوية: ${COLOR_AR[i.topCard.color]} ${ACTION_AR[i.topCard.action]} - قرر في لوحة الإجراءات`;
+  if(i.type==='lookout') return `👁️ المراقب - الورقة العلوية: ${COLOR_AR[i.topCard.color]} ${ACTION_AR[i.topCard.action]}`;
+  if(i.type==='converted') return `🐙 تم تحويلك! أنت الآن تابع للطائفة وتفوز معها فقط. سيدك: ${i.leader}`;
+  if(i.type==='cult_cabin_search') return `🐙 رأيت فرق فريق الملاحة: `+i.team.map(t=>`${t.name} = ${FACTION_AR[t.faction]}`).join(' | ');
+  return JSON.stringify(i);
+}
+
+// ===== هوية =====
+function revealId(){
+  $('idVeil').classList.add('hidden'); $('idContent').classList.remove('hidden');
+  let left=17;
+  $('idTimer').textContent=`يُخفى بعد ${left} ث`;
+  clearInterval(idTimerInt);
+  idTimerInt=setInterval(()=>{
+    left--; $('idTimer').textContent=left>0?`يُخفى بعد ${left} ث`:'';
+    if(left<=0){ hideId(); }
+  },1000);
+}
+function hideId(){
+  clearInterval(idTimerInt); $('idTimer').textContent='';
+  $('idVeil').classList.remove('hidden'); $('idContent').classList.add('hidden');
+}
+
+function toggleMap(){
+  mapOpen=!mapOpen;
+  $('mapSvg').style.display=mapOpen?'block':'none';
+  $('mapToggle').textContent=mapOpen?'🗺️ الخريطة ▾':'🗺️ الخريطة ▸';
+}
+
+// ===== عرض =====
+function pName(id){const p=S.players.find(p=>p.id===id);return p?p.name:'؟'}
+function pSel(id,filter){
+  const opts=S.players.filter(p=>p.alive&&(!filter||filter(p))).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  return `<select id="${id}">${opts}</select>`;
+}
+
+function render(){
+  if(!S) return;
+  detectTransitions();
+
+  // Save current select values before re-rendering DOM
+  const savedSelValues = {};
+  document.querySelectorAll('select').forEach(sel => {
+    if (sel.id) savedSelValues[sel.id] = sel.value;
+  });
+
+  $('codeChip').textContent=S.code;
+  $('phaseChip').textContent=PHASE_AR[S.phase]||S.phase;
+  FTKMap.update($('mapSvg'),S);
+  renderIdentity();
+  renderCrew();
+  renderAction();
+  renderWin();
+
+  // Show mutiny modal on post_reveal
+  if (S.phase === 'post_reveal' && S.mutinyRevealed && !mutinyModalSeen) {
+    showMutinyOverlay();
+  }
+
+  // Hide mutiny modal when phase changes
+  if (S.phase !== 'post_reveal') {
+    closeMutinyOverlay();
+  }
+
+  // Show appointed team modal on loyalty_commit
+  if (S.phase === 'loyalty_commit' && S.captainId && S.lieutenantId && S.navigatorId && !teamModalSeen) {
+    showTeamOverlay();
+  }
+
+  // Hide appointed team modal when phase changes
+  if (S.phase !== 'loyalty_commit') {
+    closeTeamOverlay();
+  }
+
+  // Show navigation card overlay when a new card is played
+  if (S.lastPlayedCard && S.lastPlayedCard.timestamp !== lastPlayedCardTime) {
+    const isFresh = (Date.now() - S.lastPlayedCard.timestamp) < 8000;
+    lastPlayedCardTime = S.lastPlayedCard.timestamp;
+    if (isFresh) {
+      showNavCardOverlay();
+    }
+  }
+
+  // Show character card overlay when a card is activated
+  if (S.lastActivatedCharacter && S.lastActivatedCharacter.timestamp !== lastActivatedCharTime) {
+    const isFresh = (Date.now() - S.lastActivatedCharacter.timestamp) < 8000;
+    lastActivatedCharTime = S.lastActivatedCharacter.timestamp;
+    if (isFresh) {
+      showCharOverlay();
+    }
+  }
+
+  // Restore select values after re-rendering DOM
+  Object.entries(savedSelValues).forEach(([id, val]) => {
+    const sel = document.getElementById(id);
+    if (sel) {
+      const hasOpt = Array.from(sel.options).some(o => o.value === val);
+      if (hasOpt) sel.value = val;
+    }
+  });
+}
+
+// تنبيه عابر مع زر إغلاق يدوي
+function toast(msg,kind){
+  const t=document.createElement('div');
+  t.className='toast'+(kind==='info'?' info':'');
+  t.style.position = 'relative';
+  t.style.pointerEvents = 'auto';
+  t.style.paddingLeft = '30px';
+  t.innerHTML = `
+    <span>${msg}</span>
+    <span onclick="this.parentElement.remove()" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); cursor:pointer; font-weight:bold; font-size:16px;">✕</span>
+  `;
+  $('toasts').appendChild(t);
+}
+
+// يقارن الحالة الجديدة بالسابقة لإطلاق التنبيهات العابرة عند الانتقالات
+// phase: from publicState().phase | captainId: from publicState().captainId | ME.yourId: from privateState().yourId
+function detectTransitions(){
+  if(seenState){
+    // [§2.10] خروج من مسار حسم المطيانة (post_reveal/mutiny_tie) إلى مرحلة أخرى:
+    //  - إلى appoint_team أو مع تغيّر القبطان  => نجحت المطيانة (قبطان جديد)
+    //  - إلى مرحلة ملاحة دون تغيّر القبطان      => فشلت المطيانة
+    const leftMutiny=(prevPhase==='post_reveal'||prevPhase==='mutiny_tie')&&S.phase!=='post_reveal'&&S.phase!=='mutiny_tie';
+    if(leftMutiny){
+      if(S.phase==='appoint_team'||S.captainId!==prevCaptainId)
+        toast(`⚔️ نجح التمرد! القبطان الجديد: ${pName(S.captainId)}`);
+      else
+        toast('فشل التمرد. تابع القبطان.','info');
+    }
+    // [§2.7] صرت أنت القبطان (لأي سبب: مطيانة/سُكر/كبير الطهاة...)
+    if(ME&&S.captainId===ME.yourId&&prevCaptainId!==ME.yourId)
+      toast('⚓ أنت القبطان الآن');
+
+    const enteredPostReveal = prevPhase !== 'post_reveal' && S.phase === 'post_reveal';
+    if (enteredPostReveal) {
+      mutinyModalSeen = false;
+    }
+
+    const enteredLoyaltyCommit = prevPhase !== 'loyalty_commit' && S.phase === 'loyalty_commit';
+    if (enteredLoyaltyCommit) {
+      teamModalSeen = false;
+    }
+  }
+  prevPhase=S.phase; prevCaptainId=S.captainId; seenState=true;
+}
+
+function renderIdentity(){
+  if(!ME) return;
+  let h=`<p class="tag">فريقك:</p><span class="chip f-${ME.faction}">${FACTION_AR[ME.faction]||'؟'}</span>`;
+  if(ME.knownPirates&&ME.knownPirates.filter(p=>p.id!==ME.yourId).length)
+    h+=`<p class="muted" style="margin-top:8px">🏴‍☠️ رفاقك: ${ME.knownPirates.filter(p=>p.id!==ME.yourId).map(p=>p.name).join('، ')}</p>`;
+  // [C02] Persistent Cultist UI Hydration
+  if(ME.knownCultLeader)
+    h+=`<p class="muted" style="margin-top:8px">🐙 قائد الطائفة: ${ME.knownCultLeader}</p>`;
+  if(ME.knownCultists&&ME.knownCultists.length)
+    h+=`<p class="muted" style="margin-top:8px">🐙 أتباعك: ${ME.knownCultists.map(c=>c.name).join('، ')}</p>`;
+  if(ME.character){
+    h+=`<div class="charbox">
+    <img src="/cards/${ME.character.id}.png" alt="${ME.character.nameAr}" class="char-img" onerror="this.style.display='none'">
+    <b>🃏 ${ME.character.nameAr}</b>${ME.character.revealed?' <span class="tag">(مكشوفة)</span>':''}
+    <p class="muted" style="margin-top:4px">${ME.character.desc}</p>`;
+    S.myCharacter = ME.character.id;
+    if (S.myCharacter && ABILITY_TIMING[S.myCharacter]) {
+      const timing = ABILITY_TIMING[S.myCharacter];
+      const isNow = timing.triggerPhase === 'anytime'
+        ? ACTIVE_PHASES.includes(S.phase)
+        : S.phase === timing.triggerPhase;
+      h += `<div class="ability-timing ${isNow ? 'ability-timing--active' : 'ability-timing--inactive'}">
+        ⏱ ${timing.hint}
+      </div>`;
+    }
+    if(!ME.character.revealed&&!['lobby','pirate_gathering','game_over'].includes(S.phase)){
+      h+=charControls();
+    }
+    h+=`</div>`;
+  }
+  $('idContent').innerHTML=h+`<div style="margin-top:10px"><button onclick="hideId()">إخفاء الآن</button></div>`;
+}
+
+// عناصر تفعيل البطاقة حسب نوعها
+function charControls(){
+  const id=ME.character.id;
+  const others=p=>p.id!==ME.yourId && p.alive && !p.eliminated;
+  let h='<div style="margin-top:8px">';
+  if(['kleptomaniac','troublemaker','peacemaker','mentor','smuggler','archivist','instigator','debt_collector'].includes(id))
+    h+=pSel('chT',others);
+  if(['minstrel'].includes(id))
+    h+=pSel('chT',p=>p.id!==ME.yourId && p.alive && !p.eliminated && p.id!==S.captainId)+pSel('chT2',p=>p.id!==ME.yourId && p.alive && !p.eliminated && p.id!==S.captainId);
+  if(['agitator','spiritualist'].includes(id))
+    h+=pSel('chT',others)+pSel('chT2',others);
+  if(id==='spiritualist') h+=`<p class="tag">المستلم:</p>`+pSel('chR');
+  if(id==='consultant') h+=`<p class="tag">الـ Lieutenant القادم:</p>`+pSel('chT',others);
+  if(id==='herbalist'){ h+=`<p class="tag">انقل Off-Duty من:</p>`+pSel('chT',p=>p.offDuty)+`<p class="tag">إلى:</p>`+pSel('chT2',p=>!p.offDuty); }
+  h+=`<button class="primary" style="margin-top:6px" onclick="actChar()">⚡ تفعيل البطاقة</button></div>`;
+  return h;
+}
+function actChar(){
+  const v=x=>document.getElementById(x)?.value;
+  const payload={targetId:v('chT'),targetIds:[v('chT'),v('chT2')],receiverId:v('chR')||ME.yourId,
+    ltId:v('chT'),fromId:v('chT'),toId:v('chT2')};
+  socket.emit('character:activate',payload,(r)=>{
+    ack(r);
+    if(r&&r.ok&&r.notice){ toast(r.notice,'info'); }
+    if(r&&r.ok&&r.needsDecision){
+      // [C04] واجهة قرار المراقب تُعرض في renderAction() — تنجو من تحديث الصفحة
+      renderAction();
+    }
+  });
+}
+
+function renderCrew(){
+  const sorted=[...S.players].sort((a,b)=>a.seat-b.seat);
+  $('crew').innerHTML=sorted.map(p=>{
+    let role='';
+    if(p.id===S.captainId) role='⚓ قبطان';
+    else if(p.id===S.lieutenantId) role='⭐ مساعد';
+    else if(p.id===S.navigatorId) role='🧭 ملاح';
+    else if(p.offDuty) role='💤 Off-Duty';
+    const stats=[];
+    if(p.offDuty) stats.push('💤');
+    if(p.tongueCut) stats.push('🗡️');
+    if(p.floggingResult) stats.push(`ليس ${NOTFROM_AR[p.floggingResult]||p.floggingResult}`);
+    if(!p.alive) stats.push(p.eliminated==='kraken'?'🐙':'🌊');
+    if(p.characterRevealed) stats.push('🃏');
+    const dots=(p.resumes||[]).map(r=>`<i class="d-${r.color}"></i>`).join('');
+    let mutinyBadge = '';
+    if (S.mutinyRevealed && S.mutinyRevealed[p.id] !== undefined) {
+      const base = S.mutinyRevealed[p.id];
+      const isDoubled = S.troublemakerTarget === p.id;
+      const display = isDoubled ? `${base} <b style="color:var(--danger)">(x2)</b>` : `${base}`;
+      mutinyBadge = `<div class="stat">تمرد: ${display}</div>`;
+    }
+    return `<div class="crewcard ${p.alive?'':'dead'}">
+      <div class="nm">${p.name}${p.id===ME?.yourId?' ⬅':''}</div>
+      <div class="role">${role}&nbsp;</div>
+      <div class="stat">🔫 ${p.guns}</div>
+      <div class="stat">${stats.join(' ')||'&nbsp;'}</div>
+      ${mutinyBadge}
+      <div class="resdots">${dots}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAction(){
+  if(!S||!ME) return;
+  const me=S.players.find(p=>p.id===ME.yourId)||{};
+  $('meName').textContent=`${me.name||''} — 🔫 ${ME.guns}`;
+  const isCap=ME.yourId===S.captainId, isLt=ME.yourId===S.lieutenantId, isNav=ME.yourId===S.navigatorId;
+  let h='';
+
+  if(S.pausedForCharacters){
+    const names = S.pausedForCharacters.pendingPlayers.map(p => p.name).join('، ');
+    h += `<div class="pendnote" style="display:block;border-color:var(--brass);background:rgba(201,149,62,.12)">
+      ⏳ اللعبة متوقفة بانتظار قرارات الشخصيات من: <b>${names}</b>
+    </div>`;
+    
+    if(ME && ME.yourCharacterPausePending){
+      h += `<div class="pendnote" style="display:block;border-color:var(--danger);background:rgba(219,68,85,.12);margin-top:8px">
+        🃏 حان وقت استخدام بطاقة شخصيتك: <b>${ME.character.nameAr}</b>. هل تريد تفعيل القدرة الآن أم التخطي؟
+      </div>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="primary" onclick="revealId()">🃏 عرض الهوية لتفعيل القدرة</button>
+        <button class="danger" onclick="emitA('character:skip_decision')">❌ تخطي استخدام القدرة (Pass)</button>
+      </div>`;
+    } else {
+      h += `<p class="muted" style="text-align:center;margin-top:8px;">يرجى الانتظار حتى يتخذ اللاعبون قراراتهم...</p>`;
+    }
+    $('actionPanel').innerHTML = h;
+    return;
+  }
+
+  // [C04] واجهة قرار المراقب الثابتة (تنجو من تحديث الصفحة عبر yourLookoutPending)
+  if(ME && ME.yourLookoutPending){
+    h+=`<div class="pendnote" style="display:block;border-color:var(--brass);background:rgba(201,149,62,.12)">
+      👁️ <b>المراقب:</b> الورقة العلوية في صندوق الأسرار. قرّر:
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="primary" onclick="lookoutDecide('keep')">📥 أبقها فوق المجموعة</button>
+      <button class="primary" onclick="lookoutDecide('discard')">🗑️ ارمها في الأعماق</button>
+    </div>`;
+  }
+
+  // عرض الأرشيفي
+  if(ME && ME.yourArchivistPending && ME.archivistOfferedBy){
+    h+=`<div class="pendnote" style="display:block;border-color:var(--brass);background:rgba(201,149,62,.12)">
+      📚 <b>${ME.archivistOfferedBy}</b> (الأرشيفي) يعرض عليك استبدال أوراق الملاحة الخاصة بك.
+      هل تريد التخلص من أوراقك الحالية وسحب ورقتين جديدتين؟
+    </div>`;
+
+    if (ME.navCards && ME.navCards.length > 0) {
+      h += `<p style="font-weight:800;margin-top:12px;text-align:center">أوراقك الحالية:</p>
+      <div style="margin-top:6px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">`;
+      ME.navCards.forEach(c => {
+        h += `<span class="navcard nc-${c.color}" style="cursor:default">${COLOR_AR[c.color]}<br>${ACTION_AR[c.action]}</span>`;
+      });
+      h += `</div>`;
+    }
+
+    h+=`<div style="display:flex;gap:8px;margin-top:12px;justify-content:center">
+      <button class="primary" onclick="archivistResp(true)">✅ قبول — اسحب ورقتين جديدتين</button>
+      <button onclick="archivistResp(false)">❌ رفض — احتفظ بأوراقي</button>
+    </div>`;
+    $('actionPanel').innerHTML=h; return;
+  }
+
+  // عرض المحرّك الخفي
+  if(ME && ME.yourInstigatorPending && ME.instigatorOfferedBy){
+    h+=`<div class="pendnote">⚡ <b>${ME.instigatorOfferedBy}</b> (المحرّك الخفي) يطلب منك إضافة <b>كل مسدساتك</b> للتمرد الحالي!</div>
+    <button class="primary" onclick="instResp('${ME.instigatorId}', true)">أوافق - كل مسدساتي!</button>
+    <button onclick="instResp('${ME.instigatorId}', false)">أرفض</button>`;
+    $('actionPanel').innerHTML=h; return;
+  }
+  // قرار التلسكوب
+  if(pendingTelescope){
+    h+=`<div class="pendnote">🔭 رأيت الورقة العلوية (في صندوق الأسرار). ماذا تفعل بها؟</div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="primary" onclick="tsDecide(false)">📥 أبقها فوق المجموعة</button>
+      <button class="primary" onclick="tsDecide(true)">🗑️ ارمها في الأعماق</button>
+    </div>`;
+    $('actionPanel').innerHTML=h; return;
+  }
+
+  if(me.alive===false){
+    h+=`<p class="muted">${me.eliminated==='kraken'?'🐙 أكلك الكراكن. التزم الصمت':'🌊 قفزت من السفينة. التزم الصمت'} - لكنك تفوز مع فريقك إن فاز!</p>`;
+    $('actionPanel').innerHTML=h; return;
+  }
+
+  switch(S.phase){
+    case 'lobby': {
+      const readyIds = S.readyPlayerIds || [];
+      const isReady = readyIds.includes(ME.yourId);
+      const listHtml = S.players.map(p => {
+        const isPReady = readyIds.includes(p.id);
+        return `<div class="lobby-row">
+          <span>${p.name}${p.id === ME.yourId ? ' (أنت) ⬅' : ''}</span>
+          <span class="ready-badge ${isPReady ? 'yes' : 'no'}">${isPReady ? '✅ جاهز' : '⏳ ينتظر'}</span>
+        </div>`;
+      }).join('');
+      
+      h += `<p style="font-weight: 800; font-size: 16px;">👥 قائمة الانتظار (${S.players.length} لاعبين)</p>
+      <div class="lobby-list">${listHtml}</div>`;
+      
+      if (S.hasNarrator) {
+        h += `<p class="muted" style="text-align:center; margin-bottom:8px;">🎙️ الغرفة تدار بواسطة الراوي. بانتظار أن يبدأ اللعبة.</p>`;
+      } else {
+        if (S.players.length < 5) {
+          h += `<p style="color: var(--danger); font-size: 13px; margin-bottom: 8px; text-align:center;">⚠️ يلزم 5 لاعبين على الأقل للبدء تلقائياً (الحالي: ${S.players.length})</p>
+          <button class="primary" style="width:100%" disabled>جاهز لبدء اللعب 👍</button>`;
+        } else {
+          h += `<p class="muted" style="text-align:center; margin-bottom:8px;">سيتم بدء اللعب تلقائياً فور جاهزية الجميع.</p>
+          <button class="${isReady ? 'danger' : 'primary'}" style="width:100%" onclick="emitA('player:toggle_ready')">
+            ${isReady ? 'إلغاء الجاهزية 👎' : 'جاهز لبدء اللعب 👍'}
+          </button>`;
+        }
+      }
+      break;
+    }
+    case 'pirate_gathering': {
+      const readyIds = S.readyPlayerIds || [];
+      const isReady = readyIds.includes(ME.yourId);
+      const isPirate = ME.faction === 'pirate';
+      
+      const listHtml = S.players.map(p => {
+        const isPReady = readyIds.includes(p.id);
+        return `<div class="lobby-row">
+          <span>${p.name}${p.id === ME.yourId ? ' (أنت) ⬅' : ''}</span>
+          <span class="ready-badge ${isPReady ? 'yes' : 'no'}">${isPReady ? '✅ جاهز' : '⏳ ينتظر'}</span>
+        </div>`;
+      }).join('');
+
+      h += `<p style="font-weight: 800; font-size: 16px;">🏴‍☠️ التجمع السري للقراصنة</p>`;
+      if (isPirate) {
+        h += `<p class="muted" style="color: var(--danger); margin-bottom: 6px;">بصمت تام! افتح "اكشف هويتك" في الأعلى لتتعرف على رفاقك القراصنة.</p>`;
+      } else {
+        h += `<p class="muted" style="margin-bottom: 6px;">القراصنة يتعارفون في الظلام حالياً...</p>`;
+      }
+      
+      h += `<div class="lobby-list">${listHtml}</div>`;
+      if (S.hasNarrator) {
+        h += `<p class="muted" style="text-align:center; margin-bottom:8px;">🎙️ بانتظار إشارة الراوي لإنهاء التجمع وبدء الرحلة.</p>`;
+      } else {
+        h += `<p class="muted" style="text-align:center; margin-bottom:8px;">ستبدأ الرحلة تلقائياً فور جاهزية جميع اللاعبين.</p>
+        <button class="${isReady ? 'danger' : 'primary'}" style="width:100%" onclick="emitA('player:toggle_ready')">
+          ${isReady ? 'إلغاء الجاهزية لبدء الرحلة ⚓' : 'جاهز لبدء الرحلة ⛵'}
+        </button>`;
+      }
+      break;
+    }
+    case 'appoint_team':
+      if(S.pendingType==='emergency_navigator'&&isCap){
+        h+=`<div class="pendnote">⚠️ الملاح قفز! عيّن ملاح طوارئ (يجوز Off-Duty، لا تمرد عليه)</div>
+        ${pSel('emNav',p=>p.id!==S.captainId&&p.id!==S.lieutenantId)}
+        <button class="primary" onclick="emitA('captain:emergency_navigator',{navId:val('emNav')})">تعيين ملاح الطوارئ</button>`;
+      } else if(isCap){
+        h+=`<p style="font-weight:800;margin-bottom:6px">⚓ أنت القبطان - عيّن فريق الملاحة:</p>`;
+        if (S.consultantLtPick) {
+          h+=`<div class="pendnote">المستشار قرر أن الملازم هو ${pName(S.consultantLtPick)}</div>`;
+          h+=`<p class="tag">المساعد (Lieutenant):</p>${pSel('ltSel',p=>p.id===S.consultantLtPick)}`;
+        } else {
+          h+=`<p class="tag">المساعد (Lieutenant):</p>${pSel('ltSel',p=>p.id!==ME.yourId&&!p.offDuty)}`;
+        }
+        h+=`<p class="tag">الملاح (Navigator):</p>${pSel('navSel',p=>p.id!==ME.yourId&&!p.offDuty)}
+        <button class="primary" onclick="appoint()">تعيين الفريق</button>`;
+      } else h+=`<p class="muted">القبطان ${pName(S.captainId)} يختار فريقه...</p>`;
+      break;
+    case 'loyalty_commit': {
+      const elig=S.players.filter(p=>p.alive&&p.id!==S.captainId);
+      const committed=S.mutinyCommittedIds||[];
+      if(isCap){
+        const notYet=elig.filter(p=>!committed.includes(p.id)).map(p=>p.name);
+        h+=`<p class="muted">"إن لم تكونوا راضين عن قراري، فلتتكلم مسدساتكم!"</p>
+        <p class="muted">قرر ${committed.length}/${elig.length} من الطاقم</p>
+        ${notYet.length?`<p class="muted" style="color:var(--danger)">⏳ لم يقرر بعد: ${notYet.join('، ')}</p>`:''}`;
+        if (S.mutinyCommitDelayLeft > 0) {
+          h+=`<p id="mutiny-countdown" style="color:var(--brass-hi);font-size:13px;margin-top:6px">⏳ جاري انتظار قدرات الشخصيات (${S.mutinyCommitDelayLeft} ثانية)...</p>`;
+          setTimeout(() => startCommitTimer(S.mutinyCommitDelayLeft), 50);
+        }
+        h+=`<button class="primary" ${committed.length<elig.length || S.mutinyCommitDelayLeft > 0 ?'disabled':''}
+          onclick="emitA('captain:reveal_mutiny')">⚔️ أرُوني ولاءكم! 1، 2، 3!</button>`;
+      } else if(committed.includes(ME.yourId)){
+        h+=`<p class="muted">✓ قبضتك مغلقة فوق الطاولة. بانتظار البقية...</p>`;
+      } else {
+        h+=`<p style="font-weight:800">كم مسدساً تضع في قبضتك سراً؟</p>
+        <p class="tag">0 = ولاء للقبطان | أكثر = تمرد!</p>`;
+        if (S.mutinyCommitDelayLeft > 0) {
+          h+=`<p style="color:var(--brass-hi);font-size:13px;margin-bottom:6px">⏳ الرجاء الانتظار لتفعيل قدرات الشخصيات...</p>
+          <div class="gunbtns">`;
+          for(let i=0;i<=ME.guns;i++) h+=`<button disabled>${i}</button>`;
+          h+=`</div>
+          <div id="mutiny-countdown" style="font-size:12px;color:var(--rope);margin-top:6px">متاح خلال ${S.mutinyCommitDelayLeft} ثوانٍ</div>`;
+          setTimeout(() => startCommitTimer(S.mutinyCommitDelayLeft), 50);
+        } else {
+          h+=`<div class="gunbtns">`;
+          for(let i=0;i<=ME.guns;i++) h+=`<button onclick="emitA('player:commit_guns',{count:${i}})">${i}</button>`;
+          h+=`</div>`;
+        }
+      }
+      break;
+    }
+    // [§2.1] نافذة ما بعد كشف المسدسات: أصحاب بطاقات "بعد الكشف" يفعّلونها من بطاقة الهوية أعلاه،
+    // ثم القبطان يحسم المطيانة. الزر للقبطان فقط (الراوي مراقب - §2.8). phase: from publicState().phase
+    case 'post_reveal':
+      if(isCap){
+        h+=`<div class="pendnote">⚔️ كُشفت المسدسات! يمكن لأصحاب بطاقات "بعد الكشف" تفعيلها الآن (من بطاقة هويتك). عند الجهوزية احسم التمرد.</div>`;
+        if (S.pendingInstigator) {
+          h+=`<button class="primary" disabled>⚖️ بانتظار قرار المستفز...</button>`;
+        } else {
+          if (S.mutinyResolveDelayLeft > 0) {
+            h += `<button class="primary" id="resolveMutinyBtn" disabled>
+              ⚖️ حسم التمرد (متاح خلال ${S.mutinyResolveDelayLeft} ثانية)
+            </button>`;
+            startResolveTimer(S.mutinyResolveDelayLeft);
+          } else {
+            h += `<button class="primary" onclick="emitA('captain:resolve_mutiny')">
+              ⚖️ حسم التمرد
+            </button>`;
+          }
+        }
+      } else {
+        h+=`<p class="muted">⚔️ كُشفت المسدسات. نافذة بطاقات الشخصيات مفتوحة، ثم يحسم القبطان ${pName(S.captainId)} التمرد.</p>`;
+      }
+      break;
+    case 'mutiny_tie': {
+      // [§2.2] الاختيار يدور: القبطان أولاً ثم كل مُسقَط يختار التالي.
+      // النربط على from publicState().mutinyTieChooser (وليس isCap) كي يرى كل مُختار التالي أزراره فوراً.
+      const myTurn=S.mutinyTieChooser===ME.yourId; // from publicState().mutinyTieChooser
+      if(myTurn){
+        h+=`<p style="font-weight:800">تعادل! دورك الآن: اختر من يخفض يده (يُستبعد من القبطانية):</p>`;
+        (S.mutinyTieQueue||[]).forEach(id=>h+=`<button style="margin:4px" onclick="emitA('captain:resolve_tie',{dropId:'${id}'})">${pName(id)}</button>`); // from publicState().mutinyTieQueue
+      } else {
+        const chooser=S.mutinyTieChooser?pName(S.mutinyTieChooser):'؟';
+        h+=`<p class="muted">تعادل في التمرد. الدور الحالي: <b>${chooser}</b> يختار من بين: ${(S.mutinyTieQueue||[]).map(pName).join('، ')}</p>`;
+      }
+      break;
+    }
+    case 'nav_captain': case 'nav_lieutenant': {
+      const myTurn=(S.phase==='nav_captain'&&isCap)||(S.phase==='nav_lieutenant'&&isLt);
+      if(myTurn){
+        const ev=S.phase==='nav_captain'?'captain:choose_card':'lt:choose_card';
+        h+=`<p style="font-weight:800">🤫 اختر الورقة التي <u>تبقيها</u> للدفتر (البقية تُرمى):</p>`;
+        (ME.navCards||[]).forEach((c,i)=>h+=`<span class="navcard nc-${c.color}" onclick="emitA('${ev}',{keepIndex:${i}})">${COLOR_AR[c.color]}<br>${ACTION_AR[c.action]}</span>`);
+        h+=`<p class="tag">⚠️ ممنوع الكلام أو الإشارات حتى تُكشف الورقة الأخيرة</p>`;
+      } else h+=`<p class="muted">${S.phase==='nav_captain'?'القبطان':'المساعد'} ${pName(S.phase==='nav_captain'?S.captainId:S.lieutenantId)} يختار بصمت...</p>`;
+      break;
+    }
+    case 'nav_navigator':
+      if(isNav){
+        h+=`<p style="font-weight:800">🧭 دفتر القبطان بين يديك. اختر الورقة التي تريد <u>لعبها</u> (الأخرى ستُرمى):</p>`;
+        (ME.navCards||[]).forEach((c,i)=>h+=`<span class="navcard nc-${c.color}" onclick="emitA('navigator:choose_card',{keepIndex:${i}})">${COLOR_AR[c.color]}<br>${ACTION_AR[c.action]}</span>`);
+        h+=`<br><button class="danger" style="margin-top:8px" onclick="deny()">🌊 أرفض الأوامر وأقفز من السفينة!</button>`;
+      } else h+=`<p class="muted">الملاح ${pName(S.navigatorId)} يحسم مصير السفينة...</p>`;
+      break;
+    case 'map_action':
+      if(isCap){
+        h+=`<div class="pendnote">⚓ وصلت السفينة لمساحة <b>${MAPACT_AR[S.pendingAction]}</b>!</div>
+        <p class="tag">اختر الهدف:</p>${pSel('maT',p=>p.id!==ME.yourId)}
+        <button class="primary" onclick="emitA('captain:map_action',{targetId:val('maT')})">تنفيذ</button>`;
+      } else h+=`<p class="muted">${MAPACT_AR[S.pendingAction]||''} - القبطان يقرر...</p>`;
+      break;
+    case 'card_action':
+      if(S.pendingAction==='mermaid'&&isCap){
+        h+=`<p style="font-weight:800">🧜 من يرى آخر 3 أوراق في الأعماق؟</p>${pSel('mmT')}
+        <button class="primary" onclick="emitA('captain:mermaid',{targetId:val('mmT')})">اختيار</button>`;
+      } else if(S.pendingAction==='telescope'&&isCap){
+        h+=`<p style="font-weight:800">🔭 من ينظر للورقة العلوية؟</p>${pSel('tsT')}
+        <button class="primary" onclick="emitA('captain:telescope_pick',{targetId:val('tsT')})">اختيار</button>`;
+      } else if(S.pendingAction==='spiritualist_wait') {
+        if (ME.character?.id==='spiritualist' && !ME.character?.revealed) {
+          h+=`<div class="pendnote">🟡 نافذة الورقة الصفراء: يمكنك تفعيل بطاقتك الآن من الأعلى، أو تخطي النافذة.</div>
+          <button class="primary" onclick="emitA('character:skip_spiritualist')">تخطي النافذة</button>`;
+        } else {
+          h+=`<p class="muted">بانتظار قرار الروحاني...</p>`;
+        }
+      } else h+=`<p class="muted">${ACTION_AR[S.pendingAction]||''} جارٍ...</p>`;
+      break;
+    case 'cult_ritual':
+      if(ME.faction==='cult_leader'){
+        if(S.pendingAction==='conversion'){
+          h+=`<div class="pendnote">🐙 حوّل لاعباً لطائفتك (المفحوصون غير قابلين)</div>
+          ${pSel('cvT',p=>p.id!==ME.yourId)}
+          <button class="primary" onclick="emitA('cult:convert',{targetId:val('cvT')})">تحويل</button>
+          <button onclick="emitA('cult:skip')">لا أحد مناسب - تخطٍّ</button>`;
+        } else if(S.pendingAction==='guns_stash'){
+          h+=`<div class="pendnote">🐙 وزّع 3 مسدسات سراً (يجوز لنفسك)</div>
+          <p class="tag">مسدس 1:</p>${pSel('gs1')}<p class="tag">مسدس 2:</p>${pSel('gs2')}<p class="tag">مسدس 3:</p>${pSel('gs3')}
+          <button class="primary" onclick="gunsStash()">توزيع</button>`;
+        } else if(S.pendingAction==='cult_cabin_search'){
+          // [§2.3] فحص كابينة الطائفة: القائد يرى فرق الفريق في صندوق الأسرار، ثم يؤكد ليُكمل الجولة.
+          // الظهور: phase==='cult_ritual' && from publicState().pendingAction==='cult_cabin_search' && ME.faction==='cult_leader'
+          h+=`<div class="pendnote">🐙 رأيت فرق فريق الملاحة (في صندوق أسرارك 👇). أكّد عند انتهائك من الاطلاع.</div>
+          <button class="primary" onclick="emitA('cult:ack')">✓ تأكيد الاطلاع</button>`;
+        } else h+=`<p class="muted">انظر صندوق أسرارك 👇</p>`;
+      } else h+=`<p class="muted">🐙 طقس غامض يجري في الظلام...</p>`;
+      break;
+    case 'game_over': h+=`<p class="muted">انتهت الرحلة!</p>`; break;
+  }
+  $('actionPanel').innerHTML=h;
+}
+
+function val(id){return document.getElementById(id)?.value}
+
+let resolveTimerInt = null;
+function startResolveTimer(seconds) {
+  clearInterval(resolveTimerInt);
+  let left = seconds;
+  resolveTimerInt = setInterval(() => {
+    left--;
+    const btn = document.getElementById('resolveMutinyBtn');
+    if (btn) {
+      if (left > 0) {
+        btn.textContent = `⚖️ حسم التمرد (متاح خلال ${left} ثانية)`;
+      } else {
+        btn.textContent = `⚖️ حسم التمرد`;
+        btn.removeAttribute('disabled');
+        btn.onclick = () => emitA('captain:resolve_mutiny');
+        clearInterval(resolveTimerInt);
+      }
+    } else {
+      clearInterval(resolveTimerInt);
+    }
+  }, 1000);
+}
+
+function appoint(){
+  const lt=val('ltSel'),nav=val('navSel');
+  if(lt===nav){ $('err').textContent='لا يمكن أن يكون نفس الشخص للدورين'; return; }
+  emitA('captain:appoint',{ltId:lt,navId:nav});
+}
+function deny(){ if(confirm('سترمى من اللعبة نهائياً وتصمت حتى النهاية! متأكد؟')) emitA('navigator:deny_command'); }
+function tsDecide(discard){
+  pendingTelescope=false;
+  emitA('player:telescope_decide',{discard});
+  // Lock the panel immediately so player cannot tap again before next state arrives
+  $('actionPanel').innerHTML='<p class="muted">✓ Choice recorded. Waiting for next phase…</p>';
+}
+function instResp(instId, accepted){
+  socket.emit('character:instigator_response',{instigatorId:instId,accepted},ack);
+  renderAction();
+}
+function archivistResp(accept){
+  socket.emit('archivist:respond',{accept},ack);
+  renderAction();
+}
+function lookoutDecide(d){ socket.emit('character:activate',{decide:d},ack); }
+function gunsStash(){
+  const alloc={};
+  [val('gs1'),val('gs2'),val('gs3')].forEach(id=>{ if(id) alloc[id]=(alloc[id]||0)+1; });
+  emitA('cult:distribute_guns',{allocations:alloc});
+}
+
+function closeCharOverlay() {
+  $('charOverlay').classList.add('hidden');
+  clearInterval(charOverlayTimerInt);
+}
+
+function showCharOverlay() {
+  const overlay = $('charOverlay');
+  const content = $('charOverlayContent');
+  const timerLabel = $('charOverlayTimer');
+  
+  overlay.classList.remove('hidden');
+  
+  const ch = S.lastActivatedCharacter;
+  content.innerHTML = `
+    <h2>⚡ تفعيل قدرة شخصية</h2>
+    <div style="font-size:18px;font-weight:800;color:var(--brass-hi);margin-bottom:8px">
+      ${ch.playerName}
+    </div>
+    <div style="font-size:14px;color:var(--rope);margin-bottom:12px">
+      قام بتفعيل بطاقة: <b>${ch.characterNameAr}</b>
+    </div>
+    <img src="/cards/${ch.characterId}.png" class="char-activated-img" alt="${ch.characterNameAr}" onerror="this.style.display='none'">
+    ${ch.targetText ? `<div style="margin-top:10px;font-size:15px;font-weight:700;color:var(--brass)">${ch.targetText}</div>` : ''}
+  `;
+  
+  timerLabel.classList.add('hidden');
+}
+
+function closeTeamOverlay() {
+  $('teamOverlay').classList.add('hidden');
+}
+
+function showTeamOverlay() {
+  teamModalSeen = true;
+  const content = $('teamOverlayContent');
+  $('teamOverlay').classList.remove('hidden');
+
+  content.innerHTML = `
+    <h2>⚓ طاقم الملاحة المعين</h2>
+    <p class="muted" style="margin-bottom:14px;font-size:13.5px;">عيّن القبطان فريق الملاحة للجولة الحالية:</p>
+    <div class="team-role-row">
+      <span>⚓ القبطان (Captain)</span>
+      <strong>${pName(S.captainId)}</strong>
+    </div>
+    <div class="team-role-row">
+      <span>⭐ المساعد (Lieutenant)</span>
+      <strong>${pName(S.lieutenantId)}</strong>
+    </div>
+    <div class="team-role-row">
+      <span>🧭 الملاح (Navigator)</span>
+      <strong>${pName(S.navigatorId)}</strong>
+    </div>
+  `;
+}
+
+function closeMutinyOverlay() {
+  $('mutinyOverlay').classList.add('hidden');
+  clearInterval(mutinyOverlayTimerInt);
+}
+
+function showMutinyOverlay() {
+  mutinyModalSeen = true;
+  const content = $('mutinyOverlayContent');
+  const timerLabel = $('mutinyOverlayTimer');
+
+  $('mutinyOverlay').classList.remove('hidden');
+
+  let total = 0;
+  const rows = [];
+
+  Object.entries(S.mutinyRevealed).forEach(([pid, n]) => {
+    const p = S.players.find(q => q.id === pid);
+    if (p) {
+      const isDoubled = S.troublemakerTarget === pid;
+      const displayGuns = isDoubled ? n * 2 : n;
+      total += displayGuns;
+
+      const label = displayGuns === 0
+        ? '🤝 ولاء للقبطان'
+        : `🔫 ${displayGuns} مسدس${isDoubled ? ' (x2)' : ''}`;
+
+      rows.push(`<div><span>${p.name}</span><strong>${label}</strong></div>`);
+    }
+  });
+
+  const threshold = S.players.length <= 7 ? 3 : (S.players.length <= 9 ? 4 : 5);
+  const success = total >= threshold;
+
+  content.innerHTML = `
+    <h2>⚔️ نتائج كشف التمرد</h2>
+    <div style="font-size:18px;font-weight:800;margin-bottom:8px;color:${success ? 'var(--danger)' : 'var(--brass)'}">
+      العدد الكلي للتمرد: ${total} / ${threshold} مسدسات
+    </div>
+    <div style="font-size:14px;margin-bottom:12px;color:var(--rope)">
+      ${success ? '⚠️ نجح التمرد! سيتم تغيير القبطان.' : '⚓ فشل التمرد! يستمر القبطان الحالي.'}
+    </div>
+    <div class="mutiny-rows-container">${rows.join('')}</div>
+  `;
+
+  timerLabel.classList.add('hidden');
+}
+
+function renderWin(){
+  if(!S.winner){ $('winOverlay').classList.add('hidden'); return; }
+  $('winOverlay').classList.remove('hidden');
+  $('winTitle').textContent=VIC_AR[S.winner]||S.winner;
+  $('winReason').textContent=S.winReason||'';
+  $('winFactions').innerHTML=S.players.map(p=>
+    `<div><span>${p.name}</span><span class="chip f-${p.faction}">${FACTION_AR[p.faction]||'؟'}</span></div>`).join('');
+}
+
+function closeNavCardOverlay() {
+  $('navCardOverlay').classList.add('hidden');
+  clearInterval(navCardOverlayTimerInt);
+}
+
+function showNavCardOverlay() {
+  const overlay = $('navCardOverlay');
+  const content = $('navCardOverlayContent');
+  const timerLabel = $('navCardOverlayTimer');
+
+  overlay.classList.remove('hidden');
+
+  const card = S.lastPlayedCard;
+  const directionText = COLOR_AR[card.color] || card.color;
+  const actionText = ACTION_AR[card.action] || card.action;
+  const gradientClass = `card-gradient-${card.color}`;
+
+  content.innerHTML = `
+    <h2 style="font-size: 22px; color: var(--brass-hi);">🧭 لُعبت ورقة ملاحة!</h2>
+    <p class="muted" style="margin-top: 4px;">الملاح <b>${card.navigatorName}</b> قام بتسيير السفينة</p>
+    
+    <div class="navcard-showcase ${gradientClass}">
+      <span style="font-size: 32px; margin-bottom: 6px;">⛵</span>
+      <span>${directionText}</span>
+    </div>
+    
+    <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px; color: var(--foam)">
+      الحدث المصاحب: ${actionText}
+    </div>
+  `;
+
+  timerLabel.classList.add('hidden');
+}
+
+function startCommitTimer(left) {
+  clearInterval(mutinyCommitTimerInt);
+  const el = $('mutiny-countdown');
+  if (!el) return;
+
+  mutinyCommitTimerInt = setInterval(() => {
+    left--;
+    const currentEl = $('mutiny-countdown');
+    if (currentEl) {
+      if (left > 0) {
+        if (currentEl.id === 'mutiny-countdown' && currentEl.tagName === 'P') {
+          currentEl.textContent = `⏳ جاري انتظار قدرات الشخصيات (${left} ثانية)...`;
+        } else {
+          currentEl.textContent = `متاح خلال ${left} ثوانٍ`;
+        }
+      } else {
+        clearInterval(mutinyCommitTimerInt);
+        S.mutinyCommitDelayLeft = 0;
+        render();
+      }
+    } else {
+      clearInterval(mutinyCommitTimerInt);
+    }
+  }, 1000);
+}
+function confirmExit(){
+  if(confirm('هل أنت متأكد من رغبتك في الخروج من اللعبة والعودة للصفحة الرئيسية؟')){
+    if(socket) socket.disconnect();
+    localStorage.removeItem('ftk_pid');
+    localStorage.removeItem('ftk_code');
+    sessionStorage.clear();
+    window.location.href = '/';
+  }
+}
+function startNewGame(){
+  if(socket) socket.disconnect();
+  localStorage.removeItem('ftk_pid');
+  localStorage.removeItem('ftk_code');
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+</script>
+</body>
+</html>

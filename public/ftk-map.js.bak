@@ -1,0 +1,433 @@
+// ============================================
+// FTKMap - راسم الخريطة المشترك (Canvas)
+// يُستخدم في صفحة اللاعب وشاشة العرض ولوحة الراوي.
+// يستبدل <svg id="mapSvg"> بـ <canvas> في مكانه (نفس المعرف).
+//
+// [مصدر الحقيقة] map_f1.html — 31 خلية + 7 وجهات نصر.
+// الأسهم تُرسم من state.hexes → hex.exits (نفس مصدر السيرفر).
+// الموضع الرأسي cy محسوب من y مباشرة (لا من row) كي لا تنسطح الخريطة.
+// الرموز (🔍🗡️📖🐙) من hex.action، والتعتيم عبر usedMapActions (globalAlpha=0.35).
+// ============================================
+window.FTKMap = (function () {
+  // ---- العقد الـ 31 (مطابقة لـ server/game/mapLong.js → NODES) ----
+  const NODES = [
+    { id: 'h1_0',  col: 0,  y: 0.0, num: 1  },
+    { id: 'h1_-1', col: -1, y: 0.5, num: 2  },
+    { id: 'h1_1',  col: 1,  y: 0.5, num: 3  },
+    { id: 'h2_0',  col: 0,  y: 1.0, num: 4  },
+    { id: 'h2_-1', col: -1, y: 1.5, num: 5  },
+    { id: 'h2_1',  col: 1,  y: 1.5, num: 6  },
+    { id: 'h3_-2', col: -2, y: 2.0, num: 7  },
+    { id: 'h3_0',  col: 0,  y: 2.0, num: 8  },
+    { id: 'h3_2',  col: 2,  y: 2.0, num: 9  },
+    { id: 'h3_-1', col: -1, y: 2.5, num: 10 },
+    { id: 'h3_1',  col: 1,  y: 2.5, num: 11 },
+    { id: 'h4_-2', col: -2, y: 3.0, num: 12 },
+    { id: 'h4_0',  col: 0,  y: 3.0, num: 13 },
+    { id: 'h4_2',  col: 2,  y: 3.0, num: 14 },
+    { id: 'h4_-3', col: -3, y: 3.5, num: 15 },
+    { id: 'h4_-1', col: -1, y: 3.5, num: 16 },
+    { id: 'h4_1',  col: 1,  y: 3.5, num: 17 },
+    { id: 'h4_3',  col: 3,  y: 3.5, num: 18 },
+    { id: 'h5_-2', col: -2, y: 4.0, num: 19 },
+    { id: 'h5_0',  col: 0,  y: 4.0, num: 20 },
+    { id: 'h5_2',  col: 2,  y: 4.0, num: 21 },
+    { id: 'h5_-3', col: -3, y: 4.5, num: 22 },
+    { id: 'h5_-1', col: -1, y: 4.5, num: 23 },
+    { id: 'h5_1',  col: 1,  y: 4.5, num: 24 },
+    { id: 'h5_3',  col: 3,  y: 4.5, num: 25 },
+    { id: 'h6_-2', col: -2, y: 5.0, num: 26 },
+    { id: 'h6_0',  col: 0,  y: 5.0, num: 27 },
+    { id: 'h6_2',  col: 2,  y: 5.0, num: 28 },
+    { id: 'h6_-1', col: -1, y: 5.5, num: 29 },
+    { id: 'h6_1',  col: 1,  y: 5.5, num: 30 },
+    { id: 'h7_0',  col: 0,  y: 6.0, num: 31 },
+  ];
+
+  // جدول هاشات محلي افتراضي (إذا لم يصل state.hexes من السيرفر).
+  // مطابق لـ server/game/mapLong.js → EXIT_TABLE.
+  const VICTORY = {
+    PIRATE: 'PIRATE_VICTORY',
+    SAILOR: 'SAILOR_VICTORY',
+    CULT: 'CULT_VICTORY',
+  };
+  const VICTORY_IDS = new Set([VICTORY.PIRATE, VICTORY.SAILOR, VICTORY.CULT]);
+
+  const EXIT_TABLE = {
+    1:  { yellow: 4,  red: 2,    blue: 3    },
+    2:  { yellow: 5,  red: 5,    blue: 4    },
+    3:  { yellow: 6,  red: 4,    blue: 6    },
+    4:  { yellow: 8,  red: 5,    blue: 6    },
+    5:  { yellow: 10, red: 7,    blue: 8    },
+    6:  { yellow: 11, red: 8,    blue: 9    },
+    7:  { yellow: 12, red: 12,   blue: 10   },
+    8:  { yellow: 13, red: 10,   blue: 11   },
+    9:  { yellow: 14, red: 11,   blue: 14   },
+    10: { yellow: 16, red: 12,   blue: 13   },
+    11: { yellow: 17, red: 13,   blue: 14   },
+    12: { yellow: 19, red: 15,   blue: 16   },
+    13: { yellow: 20, red: 16,   blue: 17   },
+    14: { yellow: 21, red: 17,   blue: 18   },
+    15: { yellow: 19, red: 22,   blue: 19   },
+    16: { yellow: 23, red: 19,   blue: 20   },
+    17: { yellow: 24, red: 20,   blue: 21   },
+    18: { yellow: 21, red: 21,   blue: 25   },
+    19: { yellow: 23, red: 26,   blue: 23   },
+    20: { yellow: 27, red: 23,   blue: 24   },
+    21: { yellow: 24, red: 24,   blue: 28   },
+    22: { yellow: VICTORY.PIRATE, red: VICTORY.PIRATE, blue: VICTORY.PIRATE },
+    23: { yellow: 29, red: 26,   blue: 27   },
+    24: { yellow: 30, red: 27,   blue: 28   },
+    25: { yellow: VICTORY.SAILOR, red: VICTORY.SAILOR, blue: VICTORY.SAILOR },
+    26: { yellow: VICTORY.PIRATE, red: VICTORY.PIRATE, blue: VICTORY.PIRATE },
+    27: { yellow: 31, red: 29,   blue: 30   },
+    28: { yellow: VICTORY.SAILOR, red: VICTORY.SAILOR, blue: VICTORY.SAILOR },
+    29: { yellow: VICTORY.PIRATE, red: VICTORY.PIRATE, blue: VICTORY.PIRATE },
+    30: { yellow: VICTORY.SAILOR, red: VICTORY.SAILOR, blue: VICTORY.SAILOR },
+    31: { yellow: VICTORY.CULT,   red: VICTORY.CULT,   blue: VICTORY.CULT   },
+  };
+
+  // مواقع الـ Map Action tokens (مطابقة لـ server/game/mapLong.js → ACTION_PLACEMENT
+  // و map_f1.html). تُستخدم في buildLocalMap كي يعرض fallback نفس رموز السيرفر.
+  const ACTION_PLACEMENT = {
+    'h2_-1': 'cabin_search',      // num 5
+    'h2_1':  'cabin_search',      // num 6
+    'h3_-2': 'cabin_search',      // num 7
+    'h3_0':  'cabin_search',      // num 8
+    'h4_0':  'off_with_tongue',   // num 13
+    'h4_-1': 'flogging',          // num 16
+    'h4_1':  'flogging',          // num 17
+    'h5_-1': 'feed_the_kraken',   // num 23
+    'h5_1':  'feed_the_kraken',   // num 24
+    'h6_0':  'feed_the_kraken',   // num 27
+  };
+
+  // رموز أكشن الخريطة (من hex.action). 🪢 = الجلد (سوط/حبل معقود - موحّد عبر المستودع)
+  const ACTION_ICONS = {
+    cabin_search: '🔍',
+    off_with_tongue: '🔪',
+    flogging: '🪶', // [C04] UI Localization & Asset Correction
+    feed_the_kraken: '🐙',
+  };
+
+  // مناطق النصر (num → {fill, border, icon}).
+  const KRAKEN_ZONE = new Set([31]);
+  const PIRATE_ZONE = new Set([22, 26, 29]);
+  const SAILOR_ZONE = new Set([25, 28, 30]);
+  const VICTORY_STYLES = {
+    kraken:  { fill: '#221f0f', border: '#ffcc00', icon: '🦑' },
+    pirate:  { fill: '#3a1a1a', border: '#df2935', icon: '🏴‍☠️' },
+    sailor:  { fill: '#05182d', border: '#0044cc', icon: '⚓' },
+  };
+
+  function victoryStyleFor(num) {
+    if (KRAKEN_ZONE.has(num)) return VICTORY_STYLES.kraken;
+    if (PIRATE_ZONE.has(num)) return VICTORY_STYLES.pirate;
+    if (SAILOR_ZONE.has(num)) return VICTORY_STYLES.sailor;
+    return null;
+  }
+
+  // بناء جدول هاشات محلي من NODES + EXIT_TABLE.
+  function buildLocalMap() {
+    const byNum = {};
+    for (const n of NODES) byNum[n.num] = n;
+    const hexes = {};
+    for (const n of NODES) {
+      const table = EXIT_TABLE[n.num];
+      const exits = {};
+      if (table) {
+        for (const color of ['yellow', 'red', 'blue']) {
+          const t = table[color];
+          if (typeof t === 'string') exits[color] = t;
+          else exits[color] = byNum[t] ? byNum[t].id : null;
+        }
+      }
+      hexes[n.id] = {
+        id: n.id,
+        row: Math.floor(n.y) + 1,
+        x: n.col,
+        y: n.y,
+        num: n.num,
+        action: ACTION_PLACEMENT[n.id] || null,
+        exits,
+      };
+    }
+    return hexes;
+  }
+
+  const LOCAL_MAP = buildLocalMap();
+
+  // ---- تنسيق الرسم ----
+  const hexRadius = 42;
+  const hexHeight = Math.sqrt(3) * hexRadius;
+  const HEX_COLOR = '#00b4d8';
+  const HEX_FILL = '#071f2d';
+  const SHIP_FILL = '#1d3557';
+  const SHIP_BORDER = '#ffcc00';
+  const ARROW_COLORS = {
+    yellow: '#ffcc00',
+    red: '#df2935',
+    blue: '#0066cc',
+  };
+
+  let canvas = null, ctx = null;
+
+  const log = (...a) => console.log('[FTKMap]', ...a);
+  const warn = (...a) => console.warn('[FTKMap]', ...a);
+
+  function pixelOf(hex) {
+    // cx: مركز + x * 1.5*radius (أعمدة pointy-top).
+    // cy: (canvas.height - 80) - y * hexHeight — مباشرة من y (لا من row) لتفادي الانسطاح.
+    return {
+      cx: canvas.width / 2 + hex.x * (1.5 * hexRadius),
+      cy: canvas.height - 80 - (hex.y * hexHeight),
+    };
+  }
+
+  function drawHexagon(cx, cy, r, stroke, fill) {
+    ctx.beginPath();
+    // pointy-top hex: زاوية البداية = -π/2
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + (Math.PI / 3) * i;
+      const px = cx + r * Math.cos(a);
+      const py = cy + r * Math.sin(a);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  // رسم سهم لون معين من مركز خلية src باتجاه مركز خلية target،
+  // مرسوماً عند حافة الخلية src.
+  function drawEdgeArrow(srcHex, destHex, color) {
+    if (!destHex) return;
+    let dx, dy, magn;
+    if (VICTORY_IDS.has(destHex)) {
+      // متجه شمالي/شمال-غربي/شمال-شرقي حسب اللون للأطراف.
+      if (color === 'yellow') { dx = 0; dy = -1; }
+      else if (color === 'red') { dx = -1; dy = -1; }
+      else { dx = 1; dy = -1; }
+      magn = Math.sqrt(dx * dx + dy * dy) || 1;
+      dx /= magn; dy /= magn;
+    } else {
+      const s = pixelOf(srcHex);
+      const d = pixelOf(destHex);
+      dx = d.cx - s.cx;
+      dy = d.cy - s.cy;
+      magn = Math.sqrt(dx * dx + dy * dy) || 1;
+      dx /= magn; dy /= magn;
+    }
+    const s = pixelOf(srcHex);
+    const ax = s.cx + dx * (hexRadius * 0.62);
+    const ay = s.cy + dy * (hexRadius * 0.62);
+    const angle = Math.atan2(dy, dx);
+    drawCellArrow(ax, ay, angle, ARROW_COLORS[color]);
+  }
+
+  function drawCellArrow(x, y, angle, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(11, 0);
+    ctx.lineTo(-5, -8);
+    ctx.quadraticCurveTo(-1, 0, -5, 8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawVictoryLabels() {
+    // وسوم النصر فوق الخلايا الطرفية الـ 7.
+    const topY = (canvas.height - 80 - (6.0 * hexHeight)) - hexRadius - 14;
+    ctx.save();
+    ctx.font = 'bold 13px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const cxCenter = canvas.width / 2;
+    const xToPx = (x) => cxCenter + x * (1.5 * hexRadius);
+
+    // نصر الكراكن (num 31, col=0)
+    ctx.fillStyle = '#ffcc33';
+    ctx.fillText((window.VIC_AR && window.VIC_AR.CULT_VICTORY) || 'انتصار الطائفة', xToPx(0), topY);
+    // نصر القراصنة (nums 22/26/29, cols -3/-2/-1)
+    ctx.fillStyle = '#df2935';
+    ctx.fillText((window.VIC_AR && window.VIC_AR.PIRATE_VICTORY) || 'انتصار القراصنة', xToPx(-2), (canvas.height - 80 - (5.0 * hexHeight)) - hexRadius - 14);
+    // نصر البحارة (nums 25/28/30, cols 1/2/3)
+    ctx.fillStyle = '#0066cc';
+    ctx.fillText((window.VIC_AR && window.VIC_AR.SAILOR_VICTORY) || 'انتصار البحارة', xToPx(2), (canvas.height - 80 - (5.0 * hexHeight)) - hexRadius - 14);
+    ctx.restore();
+  }
+
+  // ---- إدارة الحالة ----
+  function getHexes(state) {
+    // أولوية: state.hexes (من السيرفر، مصدر الحقيقة)؛ وإلا fallback محلي.
+    if (state && state.hexes && Object.keys(state.hexes).length) {
+      return state.hexes;
+    }
+    return LOCAL_MAP;
+  }
+
+  function drawMap(state, shipNodeId) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const hexes = getHexes(state);
+    const usedSet = new Set(state && state.usedMapActions || []);
+
+    // 1) رسم كل الخلايا (الألوان/الحدود حسب منطقة النصر أو السفينة).
+    for (const id in hexes) {
+      const hex = hexes[id];
+      const { cx, cy } = pixelOf(hex);
+      let borderColor = HEX_COLOR;
+      let fillColor = HEX_FILL;
+      const vs = victoryStyleFor(hex.num);
+      if (vs) {
+        fillColor = vs.fill;
+        borderColor = vs.border;
+      }
+      if (id === shipNodeId) {
+        fillColor = SHIP_FILL;
+        borderColor = SHIP_BORDER;
+      }
+      drawHexagon(cx, cy, hexRadius, borderColor, fillColor);
+    }
+
+    // 2) رسم الأسهم من exits كل خلية (مصدر الحقيقة الوحيد).
+    //    لا أسهم على خلايا النصر الطرفية.
+    for (const id in hexes) {
+      const hex = hexes[id];
+      if (victoryStyleFor(hex.num)) continue;
+      for (const color of ['red', 'yellow', 'blue']) {
+        const dest = hex.exits && hex.exits[color];
+        if (!dest) continue;
+        drawEdgeArrow(hex, dest, color);
+      }
+    }
+
+    drawVictoryLabels();
+
+    // 3) رموز الأكشن (🔍🗡️📖🐙) مع تعتيم عند usedMapActions.
+    ctx.save();
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const id in hexes) {
+      const hex = hexes[id];
+      if (!hex.action) continue;
+      const icon = ACTION_ICONS[hex.action];
+      if (!icon) continue;
+      const { cx, cy } = pixelOf(hex);
+      const used = usedSet.has(id) || usedSet.has(String(hex.num));
+      if (used) ctx.globalAlpha = 0.35; else ctx.globalAlpha = 1.0;
+      ctx.fillText(icon, cx, cy);
+    }
+    ctx.globalAlpha = 1.0;
+    ctx.restore();
+
+    // 4) رموز مناطق النصر (🦑🏴‍☠️⚓) على الأطراف.
+    ctx.save();
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const id in hexes) {
+      const hex = hexes[id];
+      if (id === shipNodeId) continue;
+      const vs = victoryStyleFor(hex.num);
+      if (!vs) continue;
+      const { cx, cy } = pixelOf(hex);
+      ctx.fillText(vs.icon, cx, cy);
+    }
+    ctx.restore();
+
+    // 5) سفينة ⛵ عند الخلية المطابقة تماماً للمعرّف (id === state.shipHex).
+    if (shipNodeId && hexes[shipNodeId]) {
+      const { cx, cy } = pixelOf(hexes[shipNodeId]);
+      ctx.save();
+      ctx.font = '30px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⛵', cx, cy);
+      ctx.restore();
+    }
+  }
+
+  // ---- واجهة FTKMap: build(el,opts) / update(el,state) ----
+  function build(el, opts) {
+    opts = opts || {};
+    let c = el;
+    if (el && el.tagName && String(el.tagName).toLowerCase() === 'svg') {
+      c = document.createElement('canvas');
+      c.id = el.id;
+      if (el.className) c.className = el.className;
+      const aria = el.getAttribute && el.getAttribute('aria-label');
+      if (aria) c.setAttribute('aria-label', aria);
+      if (el.parentNode) el.parentNode.replaceChild(c, el);
+      log('استُبدل <svg id="' + c.id + '"> بـ <canvas>');
+    }
+    c.width = 800;
+    c.height = 650;
+    canvas = c;
+    ctx = c.getContext('2d');
+    c._ftk = { ctx, lastShip: null };
+    log('Canvas renderer ready (single mode for all modes)');
+
+    if (typeof opts.onHexClick === 'function') {
+      c.addEventListener('click', function (ev) {
+        const rect = c.getBoundingClientRect();
+        const sx = c.width / (rect.width || c.width);
+        const sy = c.height / (rect.height || c.height);
+        const px = (ev.clientX - rect.left) * sx;
+        const py = (ev.clientY - rect.top) * sy;
+        const hexes = (c._ftk && c._ftk.hexes) || LOCAL_MAP;
+        let best = null, bd = Infinity;
+        for (const id in hexes) {
+          const { cx, cy } = pixelOf(hexes[id]);
+          const d = (cx - px) * (cx - px) + (cy - py) * (cy - py);
+          if (d < bd) { bd = d; best = id; }
+        }
+        if (best && bd <= hexRadius * hexRadius) opts.onHexClick(best);
+      });
+    }
+
+    drawMap({ mode: 'long' }, 'h1_0'); // الرسم الأولي: السفينة عند البداية h1_0
+    return c;
+  }
+
+  function update(el, state) {
+    state = state || {};
+    const c = el && el._ftk ? el : null;
+    if (!c) { warn('update: canvas غير مهيّأ — تم تخطّي التحديث'); return; }
+    canvas = c;
+    ctx = c._ftk.ctx;
+
+    const hexes = getHexes(state);
+    c._ftk.hexes = hexes;
+
+    let shipNodeId = null;
+    if (state.shipHex) {
+      // مطابقة معرّف 1:1 — لا snapping.
+      if (hexes[state.shipHex]) {
+        shipNodeId = state.shipHex;
+        if (shipNodeId !== c._ftk.lastShip) {
+          // [توحيد الخرائط] Long فقط - لا فروع للأوضاع
+          log('Ship:', state.shipHex, '→', shipNodeId, '(mode: long)');
+          c._ftk.lastShip = shipNodeId;
+        }
+      } else {
+        warn('shipHex غير معروف على الخريطة:', state.shipHex);
+      }
+    }
+
+    drawMap(state, shipNodeId);
+  }
+
+  return { build, update };
+})();

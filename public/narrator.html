@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الراوي - Feed the Kraken</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#0A161C; --deep:#0F222B; --panel:#15303A; --panel2:#112730; --line:#27434E;
+  --foam:#EAE4D3; --rope:#8FA3A8; --brass:#C9953E; --brass-hi:#E8B45A;
+  --sailor:#4E8FC7; --pirate:#C05450; --cult:#D9A441; --cultist:#6FA873; --danger:#D96459;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 600px at 50% -200px, #14323E 0%, transparent 60%),
+    var(--abyss);
+  color:var(--foam); font-family:'Tajawal',sans-serif; min-height:100vh; font-size:14px;
+}
+h1,h2,h3,.display{font-family:'Aref Ruqaa',serif}
+button{
+  font-family:'Tajawal',sans-serif; background:var(--panel); color:var(--foam);
+  border:1px solid var(--line); border-radius:6px; padding:7px 14px; cursor:pointer; font-size:13px;
+  transition:border-color .15s, background .15s;
+}
+button:hover{border-color:var(--brass)}
+button:focus-visible{outline:2px solid var(--brass-hi); outline-offset:2px}
+button.primary{background:var(--brass); color:#1A1206; border-color:var(--brass); font-weight:700}
+button.primary:hover{background:var(--brass-hi)}
+button.danger{border-color:var(--danger); color:var(--danger)}
+button:disabled{opacity:.4;cursor:not-allowed}
+select,input{
+  background:var(--deep); color:var(--foam); border:1px solid var(--line);
+  border-radius:6px; padding:6px 10px; font-family:'Tajawal'; font-size:13px;
+}
+.hidden{display:none!important}
+
+/* ======= شاشة الدخول ======= */
+#gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:18px;text-align:center;padding:20px}
+#gate h1{font-size:42px;color:var(--brass);letter-spacing:1px}
+#gate p{color:var(--rope);max-width:420px;line-height:1.8}
+#gate .row{display:flex;gap:10px}
+
+/* ======= الهيكل ======= */
+#app{display:none;max-width:1500px;margin:0 auto;padding:14px;gap:14px;flex-direction:column}
+#topbar{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+  border:1px solid var(--line);border-radius:10px;padding:12px 18px;
+}
+#roomCode{font-family:'Aref Ruqaa';font-size:34px;color:var(--brass-hi);letter-spacing:8px;line-height:1}
+.tlabel{font-size:11px;color:var(--rope)}
+#phaseChip{
+  background:var(--deep);border:1px solid var(--brass);color:var(--brass-hi);
+  border-radius:20px;padding:6px 18px;font-weight:700;font-size:15px;
+}
+.tstat{display:flex;flex-direction:column;gap:2px;align-items:center}
+.tstat b{font-size:17px}
+#winBanner{
+  display:none;background:var(--brass);color:#1A1206;border-radius:10px;
+  padding:14px 20px;font-family:'Aref Ruqaa';font-size:22px;text-align:center;
+}
+
+#grid{display:grid;grid-template-columns:330px 1fr 330px;gap:14px;align-items:start}
+@media(max-width:1100px){#grid{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+  border:1px solid var(--line);border-radius:10px;padding:14px;
+}
+.card h2{
+  color:var(--brass);font-size:18px;margin-bottom:10px;padding-bottom:8px;
+  border-bottom:1px solid var(--line);
+}
+
+/* ======= اللاعبون ======= */
+.player{
+  border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;
+  background:var(--deep);position:relative;
+}
+.player.dead{opacity:.45}
+.player .nm{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.player .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;align-items:center}
+.chip{font-size:11px;border-radius:4px;padding:2px 7px;font-weight:700}
+.f-sailor{background:var(--sailor);color:#fff}
+.f-pirate{background:var(--pirate);color:#fff}
+.f-cult_leader{background:var(--cult);color:#3A2A00}
+.f-cultist{background:var(--cultist);color:#fff}
+.badge{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--rope)}
+.badge.role{border-color:var(--brass);color:var(--brass-hi)}
+.badge.warn{border-color:var(--danger);color:var(--danger)}
+.guns{color:var(--brass-hi);font-weight:700}
+.resdots{display:inline-flex;gap:3px;vertical-align:middle}
+.resdots i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.d-yellow{background:var(--cult)} .d-blue{background:var(--sailor)} .d-red{background:var(--pirate)}
+
+/* ======= الخريطة ======= */
+#mapCard{padding:8px}
+#mapSvg{width:100%;height:auto;display:block}
+.hex{fill:#16414F;stroke:#2C5A68;stroke-width:1.5;cursor:pointer;transition:fill .15s}
+.hex:hover{fill:#1E5263}
+.hex.south{fill:#1A4A55}
+.hex.ship{fill:#27606F;stroke:var(--brass-hi);stroke-width:2.5}
+.hex.used{fill:#10333E}
+.hexicon{font-size:17px;pointer-events:none}
+.hexicon.dim{opacity:.25}
+.vic{font-family:'Aref Ruqaa';font-size:13px;font-weight:700}
+.tri{pointer-events:none}
+#shipMarker{filter:drop-shadow(0 0 7px var(--brass-hi));font-size:24px;pointer-events:none}
+
+/* ======= التحكم ======= */
+.section{margin-bottom:14px}
+.section h3{color:var(--brass-hi);font-size:15px;margin-bottom:7px}
+.btnrow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.navhand{display:flex;gap:6px;flex-wrap:wrap;margin:5px 0}
+.navcard{
+  border-radius:6px;padding:5px 9px;font-size:12px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.25);
+}
+.nc-yellow{background:#8A6A1E} .nc-blue{background:#2E5D8A} .nc-red{background:#8A3B38}
+.commitrow{display:flex;justify-content:space-between;padding:4px 8px;border-bottom:1px dashed var(--line);font-size:13px}
+.pendbox{
+  border:1px dashed var(--brass);border-radius:8px;padding:10px;background:rgba(201,149,62,.07);
+  margin-bottom:10px;font-size:13px;line-height:1.7;
+}
+
+/* ======= السجل ======= */
+#log{max-height:260px;overflow-y:auto;font-size:12.5px;line-height:1.6}
+#log div{padding:3px 6px;border-bottom:1px solid rgba(42,74,85,.4)}
+#log .secret{color:var(--cult)}
+#log time{color:var(--rope);font-size:10.5px;margin-inline-start:6px}
+
+/* أدوات الراوي */
+.ovrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- شاشة الدخول -->
+<div id="gate">
+  <h1>🐙 لوحة الراوي</h1>
+  <p>أنشئ غرفة جديدة وأعطِ الكود للاعبين، أو استرجع غرفة قائمة بعد إعادة تحميل الصفحة.</p>
+  <div class="row" id="modeRow" style="flex-direction:column;gap:8px;align-items:stretch;text-align:right;max-width:360px;width:100%">
+    <span class="tlabel" style="text-align:center">وضع اللعبة:</span>
+    <label style="display:flex;gap:8px;align-items:center;background:var(--deep);border:1px solid var(--line);border-radius:8px;padding:10px"><input type="radio" name="mode" value="long" checked> رحلة طويلة (5-11 لاعب)</label>
+  </div>
+  <div class="row">
+    <button class="primary" id="btnCreate">إنشاء غرفة جديدة</button>
+  </div>
+  <div class="row">
+    <input id="reclaimCode" placeholder="كود غرفة قائمة" maxlength="4" style="width:130px;text-align:center;letter-spacing:4px">
+    <button id="btnReclaim">استرجاع</button>
+  </div>
+  <p id="gateErr" style="color:var(--danger)"></p>
+</div>
+
+<!-- التطبيق -->
+<div id="app">
+  <div id="topbar">
+    <div class="tstat"><span class="tlabel">كود الغرفة</span><span id="roomCode">----</span></div>
+    <div id="phaseChip">—</div>
+    <div class="tstat"><span class="tlabel">أوراق السحب</span><b id="drawCount">-</b></div>
+    <div class="tstat"><span class="tlabel">الـ Deep Sea</span><b id="discardCount">-</b></div>
+    <div class="tstat"><span class="tlabel">طقوس متبقية</span><b id="ritualCount">-</b></div>
+    <div class="tstat"><span class="tlabel">خط الإمداد</span><b id="supplyState">-</b></div>
+    <div style="flex:1"></div>
+    <div class="tstat"><span class="tlabel">اللاعبون</span><b id="playerCount">0</b></div>
+    <button id="exitBtn" style="padding: 6px 12px; font-size: 13px; background: var(--danger); border-color: var(--danger); color: #fff; border-radius: 20px; font-weight: bold; margin-inline-start: 8px;" onclick="confirmExit()">خروج 🚪</button>
+  </div>
+
+  <div id="winBanner"></div>
+
+  <div id="grid">
+    <!-- عمود اللاعبين -->
+    <div class="card">
+      <h2>الطاقم <span style="color:var(--rope);font-size:12px;font-family:Tajawal">(ترى الفرق الحقيقية)</span></h2>
+      <div id="players"></div>
+    </div>
+
+    <!-- الخريطة -->
+    <div class="card" id="mapCard">
+      <h2 style="padding:0 8px">خريطة الرحلة</h2>
+      <svg id="mapSvg" viewBox="-340 -640 680 700" aria-label="خريطة الرحلة"></svg>
+      <p style="color:var(--rope);font-size:11.5px;padding:4px 8px">عرض فقط — يتتبّع موقع السفينة.</p>
+    </div>
+
+    <!-- التحكم -->
+    <div class="card">
+      <h2>دفّة التحكم</h2>
+      <div id="pendingBox" class="pendbox hidden"></div>
+      <div id="phaseControls" class="section"></div>
+
+      <div class="section" id="navView">
+        <h3>الملاحة الجارية</h3>
+        <div id="navHands" style="font-size:13px;color:var(--rope)">لا ملاحة الآن</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- السجل -->
+  <div class="card">
+    <h2>سجل القبطان</h2>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/ftk-map.js"></script>
+<script>
+const socket = io();
+let S = null; // آخر حالة
+
+// ===== ثوابت العرض =====
+const PHASE_AR = {
+  lobby:'بهو الانتظار', pirate_gathering:'التجمع السري للقراصنة', appoint_team:'تعيين فريق الملاحة',
+  loyalty_commit:'سؤال الولاء', post_reveal:'ما بعد كشف المسدسات', mutiny_tie:'حسم تعادل المطيانة',
+  nav_captain:'الملاحة: القبطان يختار', nav_lieutenant:'الملاحة: المساعد يختار', nav_navigator:'الملاحة: الملاح يحسم',
+  map_action:'حدث الخريطة', card_action:'حدث الورقة', cult_ritual:'طقس الطائفة', game_over:'انتهت اللعبة',
+};
+const FACTION_AR = {sailor:'بحّار', pirate:'قرصان', cult_leader:'قائد الطائفة', cultist:'تابع'};
+const ACTION_AR = {drunk:'سُكر', mermaid:'حورية', telescope:'تلسكوب', armed:'تسليح', disarmed:'نزع سلاح', cult_uprising:'نهوض الطائفة'};
+const MAPACT = {cabin_search:['🔍','فحص الكابينة'], flogging:['🪢','الجلد'], off_with_tongue:['🗡️','قطع اللسان'], feed_the_kraken:['🐙','إطعام الكراكن']};
+const RITUAL_AR = {conversion:'تحويل للطائفة', guns_stash:'مخبأ الأسلحة', cult_cabin_search:'فحص كابينة الطائفة'};
+const VIC_AR = {PIRATE_VICTORY:'انتصار القراصنة 🏴‍☠️', SAILOR_VICTORY:'انتصار البحّارة ⚓', CULT_VICTORY:'انتصار الطائفة 🐙'};
+const MODE_AR = {long:'رحلة طويلة (5-11 لاعب)'};
+// [§2.6] أسماء الشخصيات بالعربية - مرآة لحقل nameAr في server/game/characters.js
+// (narratorState يرسل character.id فقط، فنحوّله هنا للعرض)
+const CHAR_AR = {
+  captain:'القبطان', kleptomaniac:'مهووس السرقة', troublemaker:'مفتعل المشاكل', gunsmith:'صانع الأسلحة',
+  peacemaker:'صانع السلام', gunslinger:'المسلّح', minstrel:'المنشد', bosun:'رئيس البحّارة',
+  herbalist:'العشّاب', lookout:'المراقب', master_strategist:'الاستراتيجي', smuggler:'المهرّب',
+  agitator:'المحرّض', consultant:'المستشار', chief_cook:'كبير الطهاة', rabble_rouser:'مثير الشغب',
+  archivist:'الأرشيفي', mentor:'الموجّه', spiritualist:'الروحاني', debt_collector:'محصّل الديون',
+  equalizer:'المُعادِل', instigator:'المحرّك الخفي',
+};
+// [§2.9] أسماء أوامر الراوي الداخلية (إنجليزية) → عربية، للترجمة عند عرض السجل فقط
+const ACTIONLOG_AR = {
+  set_phase:'تغيير المرحلة', set_guns:'تعديل المسدسات', set_captain:'تعيين قبطان', move_ship:'نقل السفينة',
+  eliminate:'إقصاء لاعب', revive:'إعادة لاعب', set_off_duty:'تبديل Off-Duty', end_game:'إنهاء اللعبة',
+  force_finish_round:'إنهاء الجولة قسراً', cancel_lookout:'إلغاء معاينة المراقب', reorder_seats:'إعادة ترتيب المقاعد',
+};
+
+// ===== الاتصال =====
+const $=id=>document.getElementById(id);
+function ack(r){ if(r && !r.ok) alert(r.error); }
+
+// ===== الخريطة (الراسم المشترك FTKMap - خريطة Long موحّدة) =====
+FTKMap.build($('mapSvg'));
+
+$('btnCreate').onclick=()=>{
+  // [توحيد الخرائط] Long فقط - الوضع الافتراضي. أي قيمة أخرى يرفضها السيرفر.
+  const mode='long';
+  socket.emit('narrator:create_room',{mode},(r)=>{
+    if(!r.ok) return $('gateErr').textContent=r.error;
+    localStorage.setItem('ftk_narrator_code', r.code);
+    enterApp();
+  });
+};
+$('btnReclaim').onclick=()=>{
+  const code=$('reclaimCode').value.trim().toUpperCase();
+  socket.emit('narrator:reclaim',{code},(r)=>{
+    if(!r.ok) return $('gateErr').textContent=r.error;
+    localStorage.setItem('ftk_narrator_code', code);
+    enterApp();
+  });
+};
+// محاولة استرجاع تلقائية
+const saved = localStorage.getItem('ftk_narrator_code');
+if(saved){ socket.emit('narrator:reclaim',{code:saved},(r)=>{ if(r.ok) enterApp(); }); }
+
+function enterApp(){ $('gate').style.display='none'; $('app').style.display='flex'; }
+
+socket.on('secret_log',(d)=>{
+  addLog(`🔒 [سري → ${d.for||'؟'}] ${JSON.stringify(d.info).slice(0,140)}`, true);
+});
+// [F06/Floging] إشعار عام بحدث على ظهر السفينة (نتائج Map Actions العامة)
+socket.on('public_toast',(d)=>{
+  addLog(`⚠️ ${d.title||''} ${d.message||''}`);
+});
+socket.on('state',(s)=>{ S=s; render(); });
+
+function addLog(msg,secret){
+  const d=document.createElement('div');
+  if(secret) d.className='secret';
+  d.textContent=msg;
+  $('log').prepend(d);
+}
+
+// ===== العرض =====
+function pName(id){ const p=S?.players.find(p=>p.id===id); return p?p.name:'؟'; }
+
+function render(){
+  if(!S) return;
+  $('roomCode').textContent=S.code;
+  $('phaseChip').textContent=PHASE_AR[S.phase]||S.phase;
+  $('drawCount').textContent=S.drawPileCount;
+  $('discardCount').textContent=S.discardPileCount;
+  $('ritualCount').textContent=S.cultRitualsLeft;
+  $('supplyState').textContent=S.supplyLineCrossed?'عُبر ✓':'لم يُعبر';
+  $('playerCount').textContent=S.players.length;
+
+  // الفوز
+  if(S.winner){
+    $('winBanner').style.display='block';
+    $('winBanner').innerHTML = `
+      <div>🏁 ${VIC_AR[S.winner]||S.winner} — ${S.winReason||''}</div>
+      <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: center;">
+        <button class="primary" onclick="confirmExit()">🏠 العودة للصفحة الرئيسية</button>
+        <button onclick="startNewGame()">➕ بدء لعبة جديدة</button>
+      </div>
+    `;
+  } else $('winBanner').style.display='none';
+
+  renderPlayers();
+  renderMap();
+  renderPhaseControls();
+  renderNav();
+  renderLog();
+}
+
+function renderPlayers(){
+  const full=Object.fromEntries((S.narrator?.fullPlayers||[]).map(p=>[p.id,p]));
+  const sortedPlayers=[...S.players].sort((a,b)=>a.seat-b.seat);
+  $('players').innerHTML=sortedPlayers.map(p=>{
+    const fp=full[p.id]||{};
+    const roles=[];
+    if(p.id===S.captainId) roles.push('<span class="badge role">⚓ قبطان</span>');
+    if(p.id===S.lieutenantId) roles.push('<span class="badge role">⭐ مساعد</span>');
+    if(p.id===S.navigatorId) roles.push('<span class="badge role">🧭 ملاح</span>');
+    if(p.offDuty) roles.push('<span class="badge">Off-Duty</span>');
+    if(p.tongueCut) roles.push('<span class="badge warn">🗡️ بلا لسان</span>');
+    if(fp.examined) roles.push('<span class="badge">مفحوص</span>');
+    if(p.floggingResult) roles.push(`<span class="badge">ليس ${p.floggingResult==='cult'?'طائفة':FACTION_AR[p.floggingResult]||p.floggingResult}</span>`);
+    if(!p.alive) roles.push(`<span class="badge warn">${p.eliminated==='kraken'?'🐙 أُكل':'🌊 قفز'}</span>`);
+    const dots=(p.resumes||[]).map(r=>`<i class="d-${r.color}"></i>`).join('');
+    // [§2.6] اسم الشخصية بالعربية من CHAR_AR (مرآة nameAr) - from narratorState().fullPlayers[].character.id
+    const ch=fp.character? `<span class="badge" title="${fp.character.id}">${fp.character.revealed?'🃏 مكشوفة':'🂠'} ${CHAR_AR[fp.character.id]||fp.character.id}</span>`:'';
+    return `<div class="player ${p.alive?'':'dead'}">
+      <div class="nm">${p.name}
+        <span class="chip f-${fp.faction||''}">${FACTION_AR[fp.faction]||'؟'}</span>
+        ${fp.faction!==fp.originalFaction?'<span class="badge warn">محوَّل</span>':''}
+      </div>
+      <div class="meta">
+        <span class="guns">🔫 ${fp.guns??p.guns}</span>
+        ${ch} ${roles.join('')}
+        ${dots?`<span class="resdots" title="résumés">${dots}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMap(){
+  // الراوي مراقب فقط: لا نقر على المساحات. FTKMap يقرأ الوضع من الحالة (Long موحّدة).
+  FTKMap.update($('mapSvg'), S);
+}
+
+function renderPhaseControls(){
+  const el=$('phaseControls');
+  const pend=$('pendingBox');
+  pend.classList.add('hidden');
+  let h='';
+
+  if(S.phase==='lobby'){
+    // [R-MIN5/توحيد الخرائط] 5-11 لاعب على خريطة Long موحّدة
+    const n=S.players.length, ok=n>=5&&n<=11;
+    const need='5-11 لاعب (الحد الأدنى 5)';
+    h+=`<h3>البهو — ${MODE_AR['long']}</h3>
+    <p style="color:var(--rope);margin-bottom:8px">انضم <b style="color:var(--foam)">${n}</b> لاعب. المطلوب: ${need}.</p>
+    <button class="primary" ${ok?'':'disabled'} onclick="socket.emit('narrator:start_game',{},ack)">⚓ بدء اللعبة</button>`;
+  }
+  else if(S.phase==='pirate_gathering'){
+    h+=`<h3>التجمع السري</h3><p style="color:var(--rope);margin-bottom:8px">القراصنة يرون بعضهم الآن في أجهزتهم. عندما تجهز:</p>
+    <button class="primary" onclick="socket.emit('narrator:finish_gathering',{},ack)">إنهاء التجمع وبدء الرحلة</button>`;
+  }
+  else if(S.phase==='appoint_team'){
+    if(S.pendingType==='emergency_navigator'){
+      pend.classList.remove('hidden');
+      pend.innerHTML=`⚠️ <b>ملاحة طوارئ!</b> الملاح قفز من السفينة. القبطان <b>${pName(S.captainId)}</b> يختار ملاح طوارئ من جهازه (يجوز اختيار Off-Duty، ولا تمرد).`;
+    }
+    h+=`<h3>تعيين الفريق</h3><p style="color:var(--rope)">بانتظار القبطان <b style="color:var(--foam)">${pName(S.captainId)}</b> أن يعيّن المساعد والملاح من جهازه.</p>`;
+  }
+  else if(S.phase==='loyalty_commit'){
+    const eligible=S.players.filter(p=>p.alive&&p.id!==S.captainId);
+    const committed=S.mutinyCommittedIds||[];
+    const commits=S.narrator?.mutinyCommitments||{};
+    h+=`<h3>سؤال الولاء</h3>
+    <p style="color:var(--rope);margin-bottom:6px">"إن لم تكونوا راضين عن قراري، فلتتكلم مسدساتكم!"</p>`;
+    h+=eligible.map(p=>{
+      const done=committed.includes(p.id);
+      const v=commits[p.id];
+      return `<div class="commitrow"><span>${p.name}</span><span>${done?`✓ <b style="color:var(--brass-hi)">${v??'؟'}</b> 🔫`:'⏳ يقرر...'}</span></div>`;
+    }).join('');
+    h+=`<div style="margin-top:8px"><button class="primary" ${committed.length<eligible.length?'disabled':''}
+      onclick="socket.emit('captain:reveal_mutiny',{},ack)">أرُوني ولاءكم! 1، 2، 3!</button></div>`;
+  }
+  else if(S.phase==='post_reveal'){
+    // [§2.1] الراوي مراقب فقط: مؤشر بصري بلا زر. القبطان يحسم من جهازه.
+    pend.classList.remove('hidden');
+    pend.innerHTML=`⚔️ <b>كُشفت المسدسات!</b> نافذة بطاقات "بعد الكشف" مفتوحة. القبطان <b>${pName(S.captainId)}</b> يحسم التمرد من جهازه. <span style="color:var(--rope)">(الراوي يراقب فقط)</span>`;
+    h+=`<h3>ما بعد كشف المسدسات</h3><p style="color:var(--rope)">انتظر أن يحسم القبطان التمرد.</p>`;
+  }
+  else if(S.phase==='mutiny_tie'){
+    // [§2.2] أظهر بوضوح دور مَن الآن: from publicState().mutinyTieChooser
+    const chooser=S.mutinyTieChooser?pName(S.mutinyTieChooser):'؟';
+    h+=`<h3>تعادل!</h3>
+    <p style="color:var(--rope)">المتعادلون: ${(S.mutinyTieQueue||[]).map(pName).join('، ')}</p>
+    <p style="color:var(--brass-hi)">الدور الحالي: <b>${chooser}</b> يُسقط متعادلاً من جهازه.</p>`;
+  }
+  else if(S.phase==='nav_captain') h+=`<h3>الملاحة</h3><p style="color:var(--rope)">القبطان <b style="color:var(--foam)">${pName(S.captainId)}</b> يختار ورقة من جهازه...</p>`;
+  else if(S.phase==='nav_lieutenant') h+=`<h3>الملاحة</h3><p style="color:var(--rope)">المساعد <b style="color:var(--foam)">${pName(S.lieutenantId)}</b> يختار ورقة...</p>`;
+  else if(S.phase==='nav_navigator') h+=`<h3>الملاحة</h3><p style="color:var(--rope)">الملاح <b style="color:var(--foam)">${pName(S.navigatorId)}</b> يحسم الورقة الأخيرة (أو يقفز!)...</p>`;
+  else if(S.phase==='map_action'){
+    pend.classList.remove('hidden');
+    const a=MAPACT[S.pendingAction]||['❓',S.pendingAction];
+    pend.innerHTML=`${a[0]} <b>${a[1]}</b> — وصلت السفينة لمساحة حدث! القبطان <b>${pName(S.captainId)}</b> يختار الهدف من جهازه.`;
+    h+=`<h3>حدث الخريطة</h3>`;
+  }
+  else if(S.phase==='card_action'){
+    pend.classList.remove('hidden');
+    pend.innerHTML=`🃏 <b>${ACTION_AR[S.pendingAction]||S.pendingAction}</b> — القبطان/الهدف يتصرف من جهازه.`;
+    h+=`<h3>حدث الورقة</h3>`;
+  }
+  else if(S.phase==='cult_ritual'){
+    pend.classList.remove('hidden');
+    // from publicState().pendingAction (= pending.ritual). awaitingAck متاح في narratorState().pending
+    const awaitingAck=S.pendingAction==='cult_cabin_search';
+    const extra=awaitingAck?' <span style="color:var(--brass-hi)">(بانتظار أن يؤكد القائد اطلاعه)</span>':'';
+    pend.innerHTML=`🐙 <b>طقس: ${RITUAL_AR[S.pendingAction]||S.pendingAction||''}</b> — قائد الطائفة يتصرف سراً من جهازه. باقي اللاعبين لا يرون شيئاً.${extra}`;
+    h+=`<h3>طقس الطائفة</h3>`;
+  }
+  else if(S.phase==='game_over'){
+    h+=`<h3>النهاية</h3><p>كُشفت الفرق لجميع اللاعبين.</p>`;
+  }
+  el.innerHTML=h;
+}
+
+function renderNav(){
+  const ns=S.narrator?.navState;
+  if(!ns){ $('navHands').innerHTML='<span style="color:var(--rope)">لا ملاحة الآن</span>'; return; }
+  const card=c=>`<span class="navcard nc-${c.color}">${c.color==='yellow'?'🟡':c.color==='blue'?'🔵':'🔴'} ${ACTION_AR[c.action]}</span>`;
+  let h='';
+  if(ns.captainCards?.length) h+=`<div><span class="tlabel">يد القبطان:</span><div class="navhand">${ns.captainCards.map(card).join('')}</div></div>`;
+  if(ns.ltCards?.length) h+=`<div><span class="tlabel">يد المساعد:</span><div class="navhand">${ns.ltCards.map(card).join('')}</div></div>`;
+  if(ns.logbook?.length) h+=`<div><span class="tlabel">دفتر القبطان:</span><div class="navhand">${ns.logbook.map(card).join('')}</div></div>`;
+  if(ns.played) h+=`<div><span class="tlabel">الورقة المكشوفة:</span><div class="navhand">${card(ns.played)}</div></div>`;
+  $('navHands').innerHTML=h||'<span style="color:var(--rope)">—</span>';
+}
+
+function renderLog(){
+  const logs=(S.narrator?.fullLog||S.log||[]).slice(-60).reverse();
+  $('log').innerHTML=logs.map(l=>{
+    const t=new Date(l.t).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="${l.secret?'secret':''}">${l.secret?'🔒 ':''}${translateLog(l.msg)}<time>${t}</time></div>`;
+  }).join('');
+}
+// [§2.9] يترجم اسم الأمر الإنجليزي في سطور السجل بصيغة "[راوي] <action>" إلى العربية.
+// (الباقي عربي أصلاً من السيرفر. المفاتيح الإنجليزية الداخلية تبقى في log السيرفر.)
+function translateLog(msg){
+  return String(msg).replace(/^\[راوي\]\s+(\S+)/,(m,act)=>`[راوي] ${ACTIONLOG_AR[act]||act}`);
+}
+function confirmExit(){
+  if(confirm('هل أنت متأكد من رغبتك في الخروج وإغلاق لوحة الراوي؟')){
+    if(socket) socket.disconnect();
+    localStorage.removeItem('ftk_narrator_code');
+    sessionStorage.clear();
+    window.location.href = '/';
+  }
+}
+function startNewGame(){
+  if(socket) socket.disconnect();
+  localStorage.removeItem('ftk_narrator_code');
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+</script>
+</body>
+</html>
